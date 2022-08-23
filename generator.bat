@@ -1,0 +1,1 @@
+docker exec -it modgenerator_web_1 php generator.php
