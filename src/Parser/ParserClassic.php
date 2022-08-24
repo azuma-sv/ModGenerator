@@ -55,10 +55,8 @@ class ParserClassic implements ParserInterface {
    *  Game-like path to file which we are going to parse.
    * @param Services $services
    *  Extra services for parsing game data.
-   * @param string|NULL $name
-   *  Name of the main node of the parser.
    */
-  public function __construct(string $file, Services $services, string $name = NULL) {
+  public function __construct(string $file, Services $services) {
     // Init variables.
     $this->setServices($services);
     $this->file = $file;
@@ -110,7 +108,7 @@ class ParserClassic implements ParserInterface {
    *
    * @return SanitizedXMLData
    */
-  protected function parseNode(SimpleXMLElement $simpleXMLElement, string $parent = 'ROOT'): SanitizedXMLData {
+  protected function parseNode(SimpleXMLElement $simpleXMLElement, string $parent = Core::PARENT_ROOT): SanitizedXMLData {
     // Process name and attributes.
     $name = $this->processName($simpleXMLElement);
     $attributes = $this->processAttributes($simpleXMLElement);
@@ -127,7 +125,9 @@ class ParserClassic implements ParserInterface {
     }
     // Return parsed node.
     $node = new SanitizedXMLData($name, $attributes, $children);
-    $this->statistic($node, $parent);
+    $node->setParent($parent);
+    $this->services()->process($node);
+//    $this->statistic($node, $parent);
     return $node;
   }
 
@@ -176,6 +176,8 @@ class ParserClassic implements ParserInterface {
 
   /**
    * Method to collect and store statistic about parsed data.
+   *
+   * @todo: Refactor or remove.
    *
    * @param SanitizedXMLData $sanitizedXMLData - Parsed data.
    * @param string $parent - Parent element name.

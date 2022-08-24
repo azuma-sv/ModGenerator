@@ -7,6 +7,7 @@
 
 namespace Barotraumix\Generator\BaroEntity;
 
+use Barotraumix\Generator\BaroEntity\Property\ParentName;
 use Barotraumix\Generator\BaroEntity\Property\Attributes;
 use Barotraumix\Generator\BaroEntity\Property\Children;
 use Barotraumix\Generator\BaroEntity\Property\Value;
@@ -24,6 +25,7 @@ abstract class Base {
   use Value;
   use Children;
   use Attributes;
+  use ParentName;
 
   /**
    * Returns object value or children dependently on what is present.

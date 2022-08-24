@@ -71,13 +71,8 @@ class SteamCMD {
     public function appInstall(int $appId = NULL):int|bool|NULL {
         // Default value for appId.
         $appId = $appId ?? Core::BAROTRAUMA_APP_ID;
-
         // Get app build id from Steam.
-        // @todo: Uncomment.
-//        $buildId = $this->buildId($appId);
-        // @todo: Remove.
-        $buildId = 9118874;
-
+        $buildId = $this->buildId($appId);
         // String which will help to log errors.
         $appName = ($appId == Core::BAROTRAUMA_APP_ID) ? 'Barotrauma' : "the app: $appId";
 
@@ -97,21 +92,8 @@ class SteamCMD {
             return NULL;
         }
 
-        // In case if we don't want to overwrite existing app files.
-        // @todo: Check this shit.
-        // Scan directory.
-//        $scan = $this->fileSystem->scanDirectory($this->prepareUri($appId, $buildId), '/.*/', ['recurse' => FALSE]);
-//        if (!empty($scan)) {
-//            $message = "Failed to install $appName, because it's folder is occupied.";
-//            $this->channel->critical($message);
-//            return NULL;
-//        }
-
         // Finally run SteamCMD.
-        // @todo: Uncomment.
-//        $status = $this->runUpdate($appId, $buildId);
-        // @todo: Remove.
-        $status = TRUE;
+        $status = $this->runUpdate($appId, $buildId);
         if ($status) {
             return $buildId;
         }

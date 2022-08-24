@@ -66,33 +66,63 @@ class Scanner {
   }
 
   /**
-   * Return array of data of the file with items.
+   * Return array of data with items.
    *
-   * @param string $file - Path to the file to parse.
+   * @todo: Implement for mods as well.
    *
-   * @return SanitizedXMLData
+   * @return array
    */
-  public function items(): SanitizedXMLData {
+  public function items(): array {
     $contentPackage = $this->contentPackage();
-    $assets = $contentPackage->getChildrenByType('Item');
+    $assets = $contentPackage->getChildrenByType($this->services()->getItemTypes());
+    $mappingEntities = $this->services()->mappingEntities();
     $items = [];
     /** @var Asset $asset */
     foreach ($assets as $asset) {
       $file = $asset->getAttribute('file');
-      $parser = $this->createParser($file, 'Items');
+      $parser = $this->createParser($file);
       $data = $parser->sanitizedXMLData();
       /** @var SanitizedXMLData $child */
-      foreach ($data->getChildren() as $child) {
-        if ($child->getName() == 'Item') {
+      if (!$data->hasChildren()) {
+        // Skip file.
+        continue;
+      }
+      // Check if we have only single child.
+      $name = $data->getName();
+      $pseudoName = $name;
+      if ($mappingEntities->has($pseudoName)) {
+        $pseudoName = $mappingEntities->get($pseudoName);
+      }
+      // Prepare children array.
+      if ($pseudoName == 'Item') {
+        $children = [$data];
+      }
+      if ($pseudoName == 'Items') {
+        $children = $data->getChildren();
+      }
+      // Throw error.
+      if (!isset($children)) {
+        Core::error('Unable to get children of the entity.');
+        return $items;
+      }
+      // Check each child.
+      foreach ($children as $child) {
+        if ($this->services()->isItem($child)) {
           $items[] = Item::createFrom($child, $this->services());
         }
         else {
+          // Can be used to add new values to YAML.
+          // $mappingEntities->set($child->getName(), 'Item');
           Core::error('This case needs attention. Name of the element is: ' . $child->getName());
         }
-        break;
       }
-      $a = 1;
     }
+    // This item should never be a part of this mapping.
+    $mappingEntities->delete('Items');
+    // Save to YAML.
+    $mappingEntities->save();
+    // Return parsed items.
+    return $items;
   }
 
   /**
@@ -111,22 +141,14 @@ class Scanner {
    * It uses path system like game XML files. You don't need to use URI or real
    *   path. Just type something like:
    * "Content/ContentPackages/Vanilla.xml" to parse game content package.
-   * @param string|NULL $name - Asset name (if we want to parse assets).
-   *  Leave blank if you want to scan a content package.
    *
    * @return ParserInterface
    *  At current moment we have only one parser.
    */
-  public function createParser(string $file = NULL, string $name = NULL): ParserInterface {
+  public function createParser(string $file = NULL): ParserInterface {
     // Check for existing parser.
     if (isset($this->parsers[$file])) {
-      /** @var ParserInterface $parser */
-      $parser = $this->parsers[$file];
-      // Validate if we have the same name.
-      if (isset($name) && $parser->getName() != $name) {
-        Core::error("Attempt to rename existing parser. (existing: " . $parser->getName() . " new: $name)");
-      }
-      return $parser;
+      return $this->parsers[$file];
     }
 
     // Default file path.
@@ -147,7 +169,7 @@ class Scanner {
 
     // Create parser and store it in cache.
     /** @var ParserInterface $parser - At current moment we have only classic parser. */
-    $parser = new $this->parserClass($file, $services, $name);
+    $parser = new $this->parserClass($file, $services);
     $this->parsers[$file] = $parser;
     return $parser;
   }

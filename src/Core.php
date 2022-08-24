@@ -20,9 +20,14 @@ class Core {
   const __TYPES = ['Item'];
 
   /**
-   * @var array Settings for generator.
+   * @const string - Keyword to indicate that this XML element has no parent.
    */
-  protected array $settings = [];
+  const PARENT_ROOT = 'ROOT';
+
+  /**
+   * @var Settings Settings for generator.
+   */
+  protected Settings $settings;
 
   /**
    * @var SteamCMD SteamCMD connector service.
@@ -46,8 +51,9 @@ class Core {
    */
   public function __construct(string $dir) {
     $this->steam = new SteamCMD($this);
-    $this->settings = Yaml::parseFile('settings.yml');
-    $this->settings['root'] = $dir;
+    $this->settings = new Settings('settings.yml');
+    $this->settings->set('root', $dir);
+    $this->settings->save();
   }
 
   /**
@@ -56,21 +62,49 @@ class Core {
    * @return NULL|bool|int
    */
   public function init(): null|bool|int {
-    return $this->steam->appInstall(Core::BAROTRAUMA_APP_ID);
+    $buildId = NULL;
+    // Try to get build ID in settings.
+    if (!empty($this->settings->has('buildId'))) {
+      $buildId = $this->settings->get('buildId');
+    }
+
+    // Force update.
+    if (in_array('--force-update', $GLOBALS['argv']) || !isset($buildId)) {
+      $buildId = $this->steam->appInstall(Core::BAROTRAUMA_APP_ID);
+      // Save build ID value.
+      if (!empty($buildId)) {
+        $this->settings->set('buildId', $buildId);
+        $this->settings->save();
+      }
+      else {
+        Core::error('Unable to update Barotrauma.');
+      }
+    }
+
+    // Error.
+    if (!isset($buildId)) {
+      Core::error('Unable to get BuildID.');
+    }
+
+    // Initialize generator.
+    $scanner = $this->scan(Core::BAROTRAUMA_APP_ID, $buildId);
+    // Scan only items at the moment.
+    $scanner->items();
+    return $buildId;
   }
 
   /**
    * Path to the game.
    */
   public function pathGame(): string {
-    return $this->pathPrepare($this->settings['files']['game']);
+    return $this->pathPrepare($this->settings->get('files')['game']);
   }
 
   /**
    * Path to the mods from workshop.
    */
   public function pathMods(): string {
-    return $this->pathPrepare($this->settings['files']['mods']);
+    return $this->pathPrepare($this->settings->get('files')['mods']);
   }
 
   /**
@@ -79,6 +113,15 @@ class Core {
   public function pathOutput(): string {
     // @todo: Manage this as setting.
     return 'C:\Program Files (x86)\Steam\steamapps\common\Barotrauma\LocalMods\[DS] Gather Resources Quickly';
+  }
+
+  /**
+   * Get settings object.
+   *
+   * @return Settings
+   */
+  public function settings():Settings {
+    return $this->settings;
   }
 
   /**
@@ -104,11 +147,27 @@ class Core {
   }
 
   /**
+   * Method to prepare real path by relative path.
+   *
+   * @param $path - Relative path (relative to project root).
+   *
+   * @return string
+   */
+  public function pathPrepare($path): string {
+    return $this->settings->get('root') . '/' . $path;
+  }
+
+  /**
    * Error message.
    *
    * @param $msg - Message to throw.
    */
   public static function error($msg): void {
+    // Debugging information.
+    $backtrace = debug_backtrace();
+    $debug = reset($backtrace);
+    print $debug['file'] . " :: " . $debug['line'] . "\r\n";
+    // Log error.
     static::log($msg, 0);
     exit();
   }
@@ -173,21 +232,13 @@ class Core {
     $msg = strval($msg);
     // Print.
     print $msg;
-  }
-
-  /**
-   * Method to prepare real path by relative path.
-   *
-   * @param $path - Relative path (relative to project root).
-   *
-   * @return string
-   */
-  public function pathPrepare($path): string {
-    return $this->settings['root'] . '/' . $path;
+    print "\r\n";
   }
 
   /**
    * This method is full of shit, do not recommend look into it.
+   *
+   * @todo: Refactor and use.
    *
    * @return void
    */
@@ -197,7 +248,7 @@ class Core {
     $contentPackage = $scanner->contentPackage();
     // At current moment just scan items.
     $assets = $contentPackage->getChildrenByType(Core::__TYPES);
-    /** @var \Barotraumix\Generator\BaroEntity\Entity\Asset $asset */
+    /** @var \Barotraumix\Generator\BaroEntity\Entity\BaseEntity $asset */
     foreach ($assets as $asset) {
       $parser = $scanner->createParser($asset->getAttribute('file'));
       // Just parse data.
@@ -227,7 +278,6 @@ class Core {
     file_put_contents('mapping.tags.yml', Yaml::dump($mappingTags));
     // Generate PHP files.
     asort($tags);
-    $phpFiles = [];
     foreach ($tags as $tag) {
       $className = $tag;
       if (isset($mappingTags[$tag])) {
@@ -238,12 +288,24 @@ class Core {
       if (!file_exists($filePath)) {
         $fileContent = "<?php\r\n/**\r\n * @file\r\n * Class to manipulate with Barotraumix $className entity.\r\n  */\r\n\r\nnamespace Barotraumix\Generator\BaroEntity\Entity;\r\n\r\nuse Barotraumix\Generator\Core;\r\nuse Barotraumix\Generator\BaroEntity\Base;\r\n\r\n/**\r\n * Class $className.\r\n */\r\nclass $className extends BaseEntity {\r\n  /**\r\n   * @inheritDoc\r\n   */\r\n  public function createChild(Base \$child): null|bool|Base {\r\n    \$newChild = NULL;\r\n    \$name = \$child->getName();\r\n    switch (\$name) {\r\n\r\n      case 'PreferredContainer':\r\n        \$newChild = PreferredContainer::createFrom(\$child, \$this->services());\r\n        break;\r\n\r\n      case 'CHILD_NAME':\r\n        \$newChild = Prices::createFrom(\$child, \$this->services());\r\n        \$newChild->setName('OPTIONAL');\r\n        break;\r\n\r\n      default:\r\n        Core::error('This case needs attention. CHILD_NAME child element is not recognized: ' . \$name);\r\n        break;\r\n    }\r\n    return \$newChild;\r\n  }\r\n}";
         // You need to ensure that there is no duplicated tags in array "$tags".
-        file_put_contents($filePath, $fileContent);
+//        file_put_contents($filePath, $fileContent);
       }
     }
     // Prepare debugging data.
     $debug = json_encode($statistic, JSON_UNESCAPED_SLASHES);
-    unset($debug);
+    unset($debug, $fileContent);
+  }
+
+  /**
+   * Method to prepare tags array.
+   *
+   * @todo: I am not sure that I need that.
+   * @see: Core::prepareStatistic().
+   *
+   * @return void
+   */
+  protected function mappingPrepareTags():void {
+
   }
 
 }

@@ -1,2 +1,4 @@
+buildId: 9118874
 files:
-  game: barotrauma
+    game: barotrauma
+root: /app

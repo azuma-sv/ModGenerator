@@ -47,10 +47,11 @@ abstract class BaseEntity extends Base {
 
   /**
    * Create child element in face of proper class.
+   *
+   * @return NULL|bool|Base.
    */
   public function createChild(Base $child):NULL|bool|Base {
-      // Can't have children :(
-      return NULL;
+      return Entity::createFrom($child, $this->services());
   }
 
   /**
@@ -63,8 +64,8 @@ abstract class BaseEntity extends Base {
   protected function importData(Base $baroEntity):void {
     // Move data to our object.
     $this->setName($baroEntity->getName());
-    $attributes = $baroEntity->getAttributes();
-    $this->setAttributes($attributes);
+    $this->setParent($baroEntity->getParent());
+    $this->setAttributes($baroEntity->getAttributes());
     // We will use something one: child value or array of children objects.
     if ($baroEntity->hasValue()) {
       $this->setValue($baroEntity->getValue());
@@ -73,7 +74,7 @@ abstract class BaseEntity extends Base {
       foreach ($baroEntity->getChildren() as $child) {
         // Skipp unsupported assets for easier development process.
         if ($this->getName() == 'ContentPackage' && !in_array($child->getName(), Core::__TYPES)) {
-          // @todo: Remove
+          // @todo: Remove later.
           continue;
         }
         $newChild = $this->createChild($child);
