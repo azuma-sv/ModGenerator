@@ -1,0 +1,13 @@
+name: ModGenerator
+recipe: symfony
+config:
+  webroot: web
+  via: nginx
+services:
+  appserver:
+    type: php:8.1
+    overrides:
+      # Image with Lando PHP 8.1 and SteamCMD.
+      image: azumasv/barotraumix:lando-php-8.1
+      environment:
+        BAROTRAUMA_SOURCE_FILES: "sites/default/barotrauma"
