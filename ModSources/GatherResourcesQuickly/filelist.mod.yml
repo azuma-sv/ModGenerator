@@ -1,0 +1,39 @@
+name: '[DS] Gather Resources Quickly'
+modversion: 1.0.2
+gameversion: '%GAME_VERSION'
+corepackage: false
+altnames: Gather Resources Quickly
+# TODO: Remove.
+order:
+  - barotraumatic_nightmare
+  - batter_vanilla_weapons
+global-variables:
+  # Should help us to select proper items.
+  RARE:
+    ORE: 'titanite,brockite,thorianite,amblygonite,uraniumore,ilmenite,esperite,galena,triphylite,langbeinite,sylvite,cryolite'
+    PLANT: 'slimebacteria'
+  # Size of the spot on sonar for resources.
+  SONAR:
+    COMMON: 9
+    RARE: 18
+  PICKING_TIME: 0
+execute:
+  # Import game version from Vanilla content package entity.
+  $import|GAME_VERSION: ContentPackage@name=Vanilla>gameversion
+  # Select all Items with tag 'ore' or 'plant' from database and apply set of rules for them.
+  Item@tags=ore,plant:
+    $debug|Filtered Items: '>identifier'
+    sonarsize: '%SONAR>COMMON'
+    # Apply another sonar spot size for rare materials.
+    # @todo: Refactor for internal selector rule.
+    identifier=%RARE>ORE?identifier=%RARE>PLANT:
+      $debug|Filtered Rare Items: '>identifier'
+      sonarsize: '%SONAR>RARE'
+    # Disable picking time.
+    /Holdable:
+#      @todo: Implement.
+#      $debug|Holdable: ''
+      pickingtime: '%PICKING_TIME'
+    # Remove requirement from cutting equipment.
+    $remove: /LevelResource/RequiredItem@items=cutting equipment
+

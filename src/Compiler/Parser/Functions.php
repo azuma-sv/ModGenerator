@@ -5,11 +5,11 @@
  * Helper service to handle functionality related with functions.
  */
 
-namespace Barotraumix\Generator\Builder\Parser;
+namespace Barotraumix\Generator\Compiler\Parser;
 
-use Barotraumix\Generator\Builder\BuilderInterface;
-use Barotraumix\Generator\Bank;
+use Barotraumix\Generator\Compiler\CompilerInterface;
 use Barotraumix\Generator\Core;
+use Barotraumix\Generator\Services\Database;
 
 /**
  * Class definition.
@@ -17,14 +17,14 @@ use Barotraumix\Generator\Core;
 class Functions {
 
   /**
-   * @var Bank - Storage bank.
+   * @var Database - Storage bank.
    */
-  protected Bank $bank;
+  protected Database $bank;
 
   /**
-   * @var BuilderInterface - Builder service.
+   * @var CompilerInterface - Compiler service.
    */
-  protected BuilderInterface $builder;
+  protected CompilerInterface $builder;
 
   /**
    * @var Parser - Parser service.
@@ -34,9 +34,9 @@ class Functions {
   /**
    * Object constructor.
    *
-   * @param Bank $bank - Storage for variables and context.
+   * @param Database $bank - Storage for variables and context.
    */
-  public function __construct(Bank $bank, BuilderInterface $builder, Parser $parser) {
+  public function __construct(Database $bank, CompilerInterface $builder, Parser $parser) {
     $this->bank = $bank;
     $this->builder = $builder;
     $this->parser = $parser;

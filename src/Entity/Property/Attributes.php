@@ -5,7 +5,7 @@
  * Trait to handle attributes.
  */
 
-namespace Barotraumix\Generator\BaroEntity\Property;
+namespace Barotraumix\Generator\Entity\Property;
 
 /**
  * Trait definition.
@@ -20,8 +20,7 @@ trait Attributes {
   /**
    * Get object attribute.
    *
-   * @param string $attribute
-   *  Attribute name.
+   * @param string $attribute - Attribute name.
    *
    * @return string
    */
@@ -32,8 +31,7 @@ trait Attributes {
   /**
    * Check if specific attribute exists.
    *
-   * @param string $attribute
-   *  Attribute name.
+   * @param string $attribute - Attribute name.
    *
    * @return bool
    */
@@ -44,13 +42,11 @@ trait Attributes {
   /**
    * Set value for specific attribute.
    *
-   * @param string $attribute
-   *  Attribute name.
-   * @param string $value
-   *  Attribute value.
+   * @param string $attribute - Attribute name.
+   * @param string $value - Attribute value.
    */
   public function setAttribute(string $attribute, string $value): void {
-    $this->attributes[$attribute] = $value;
+    $this->attributes[mb_strtolower($attribute)] = $value;
   }
 
   /**
@@ -65,13 +61,32 @@ trait Attributes {
   /**
    * Adds additional attributes to object.
    *
-   * @param array $attributes
-   *  Array of attributes.
+   * Overwrites if attribute exist.
+   *
+   * @param array $attributes - Array of attributes.
    */
   public function addAttributes(array $attributes): void {
     // For validation purpose.
     foreach ($attributes as $attribute => $value) {
       $this->setAttribute($attribute, $value);
+    }
+  }
+
+  /**
+   * Removes attributes from object.
+   *
+   * @param array|NULL $attributes - Array of attribute keys.
+   */
+  public function unsetAttributes(array $attributes = NULL): void {
+    if (!isset($attributes)) {
+      // Wipe all attributes.
+      $this->attributes = [];
+    }
+    else {
+      // Remove specific attributes.
+      foreach ($attributes as $attribute) {
+        unset($this->attributes[$attribute]);
+      }
     }
   }
 

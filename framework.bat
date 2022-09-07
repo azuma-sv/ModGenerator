@@ -1,0 +1,1 @@
+docker exec -it modgenerator_appserver_1 php generator.php --mod=GatherResourcesQuickly

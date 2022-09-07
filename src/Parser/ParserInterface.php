@@ -9,8 +9,6 @@
 
 namespace Barotraumix\Generator\Parser;
 
-use Barotraumix\Generator\BaroEntity\SanitizedXMLData;
-
 /**
  * Interface ParserInterface.
  */
@@ -19,8 +17,8 @@ interface ParserInterface {
     /**
      * Get all data from parser (file).
      *
-     * @return SanitizedXMLData
+     * @return array|NULL
      */
-    public function sanitizedXMLData():SanitizedXMLData;
+    public function doParse(): array|NULL;
 
 }

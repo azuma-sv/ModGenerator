@@ -5,14 +5,13 @@
  * Class to handle barotrauma entities.
  */
 
-namespace Barotraumix\Generator\BaroEntity;
+namespace Barotraumix\Generator\Entity;
 
-use Barotraumix\Generator\BaroEntity\Property\ServicesHolder;
-use Barotraumix\Generator\BaroEntity\Property\Attributes;
-use Barotraumix\Generator\BaroEntity\Property\Children;
-use Barotraumix\Generator\BaroEntity\Property\Value;
-use Barotraumix\Generator\BaroEntity\Property\Name;
-use Barotraumix\Generator\Services;
+use Barotraumix\Generator\Core;
+use Barotraumix\Generator\Entity\Property\Attributes;
+use Barotraumix\Generator\Entity\Property\Children;
+use Barotraumix\Generator\Entity\Property\Value;
+use Barotraumix\Generator\Entity\Property\Name;
 
 /**
  * Class BaroEntity.
@@ -30,8 +29,6 @@ class BaroEntity {
   use Children;
   // XML Attributes.
   use Attributes;
-  // Extra services to use in this class. ps. Improvised dependency injection.
-  use ServicesHolder;
 
   /**
    * @var BaroEntity - Parent BaroEntity object.
@@ -50,16 +47,26 @@ class BaroEntity {
    *
    * @param string $name - XML tag name.
    * @param array $attributes - XML attributes as array.
-   * @param Services $services - Extra services to use in this class.
+   * @param BaroEntity|string $parentOrType - Indicates if it's an entity or sub-element.
+   *  String - Means that this is a root entity which always has a type.
+   *  BaroEntity - Means that this is a sub-element which always has root entity.
    */
-  public function __construct(string $name, array $attributes, Services $services) {
+  public function __construct(string $name, array $attributes, BaroEntity|string $parentOrType) {
     $this->setName($name);
     $this->addAttributes($attributes);
-    $this->setServices($services);
+    if (is_scalar($parentOrType)) {
+      $this->type = strval($parentOrType);
+    }
+    elseif ($parentOrType instanceof BaroEntity) {
+      $this->parent = $parentOrType;
+    }
+    else {
+      Core::error('Attempt to create an entity has been failed.');
+    }
   }
 
   /**
-   * Get object name.
+   * Get parent entity.
    *
    * @return BaroEntity|NULL
    */
@@ -72,37 +79,141 @@ class BaroEntity {
   }
 
   /**
+   * Get root entity.
+   *
+   * Return root entity of current entity. May return itself.
+   *
+   * @return BaroEntity
+   */
+  public function root(): BaroEntity {
+    $current = $this;
+    while (TRUE) {
+      $parent = $current->parent();
+      if (!isset($parent)) {
+        // Validate entity.
+        if (!$current->isEntity()) {
+          Core::error('Root entity is not a normal entity. This case needs to be reported.');
+        }
+        return $current;
+      }
+      $current = $parent;
+    }
+  }
+
+  /**
+   * Check if current entity can be used as normal entity (not a sub-element).
+   *
+   * @return bool
+   */
+  public function isEntity(): bool {
+    return isset($this->type);
+  }
+
+  /**
    * Get object type.
    *
-   * @return string|NULL
+   * Will return tag name in the case if it's a sub-element.
+   *
+   * @return string
    */
-  public function type(): string|NULL {
+  public function type(): string {
     // Prevent error.
     if (!isset($this->type)) {
-      return NULL;
+      return $this->name();
     }
     return $this->type;
   }
 
   /**
-   * Method to connect this object with its parent.
+   * Method to get entity ID.
    *
-   * @param BaroEntity $parent
+   * If this entity has no ID - it will look for parent entity and return it id.
+   * @todo: I need to use ID trait instead of this method.
    *
-   * @return void
+   * @return string|NULL
    */
-  public function setParent(BaroEntity $parent): void {
-    $this->parent = $parent;
-    // We can initialize object type only if it has been parented.
-    $this->initializeType();
+  public function id(): string|NULL {
+    $root = $this->root();
+    // Validate for error.
+    if (!$root->isEntity()) {
+      Core::error('Framework error: Current entity has no ID');
+    }
+    // @todo: I need to store entity ID inside of the BaroEntity (not in XML).
+    return $this->attribute($this->idAttribute());
   }
 
   /**
-   * This method will detect and set a type of current entity.
+   * Prepares a string for a debugging message.
+   *
+   * String will contain root entity ID and type, also current entity type.
+   *
+   * @return string
+   */
+  public function debug(): string {
+    $id = $this->id();
+    $type = $this->type();
+    if (!$this->isEntity()) {
+      $root = $this->root();
+      $id = $root->id();
+      $rootType = $root->type();
+      return "Sub-element of type: '$type' owned by a root entity with ID: '$id' of type: '$rootType'";
+    }
+    return "Root entity with ID: '$id' of type: '$type'";
+  }
+
+  /**
+   * Just a validation to prevent usage of this method.
+   *
    * @return void
    */
-  protected function initializeType(): void {
-    // @todo: Implement.
+  public function __clone(): void {
+    // @todo: Find out a way to use this method.
+    Core::error('BaroEntity need to be cloned with method BaroEntity::clone($parent)');
+  }
+
+  /**
+   * Magic method to clone BaroEntity properly.
+   *
+   * @param BaroEntity|NULL $parent - Parent entity (optional for root entities).
+   *
+   * @return BaroEntity
+   */
+  public function clone(BaroEntity $parent = NULL): BaroEntity {
+    // Clone current entity with proper parent.
+    $cloned = new BaroEntity($this->name(), $this->attributes(), $parent);
+    // In case if we have children - clone them too.
+    if ($this->hasChildren()) {
+      foreach ($this->children() as $child) {
+        $cloned->addChild($child->clone($cloned));
+      }
+    }
+    return $cloned;
+  }
+
+  /**
+   * Method to get attribute name which identifies this entity.
+   *
+   * @todo: Remove. ID should be stored inside of a BaroEntity.
+   *
+   * @return string|NULL
+   */
+  protected function idAttribute(): string|NULL {
+    // Mapping between entity and its ID attribute.
+    // @todo: Move to settings?
+    static $mappingIdAttribute = [
+      'ContentPackage' => 'name',
+      'Item' => 'identifier',
+    ];
+    // Provide ID if exists.
+    if ($this->isEntity()) {
+      if (isset($mappingIdAttribute[$this->type()])) {
+        return $mappingIdAttribute[$this->type()];
+      }
+      else {
+        Core::error('Unable to find entity ID attribute');
+      }
+    }
+    return NULL;
   }
 
 }

@@ -6,8 +6,9 @@
  *   source files.
  */
 
-namespace Barotraumix\Generator;
+namespace Barotraumix\Generator\Services;
 
+use Barotraumix\Generator\Core;
 use Barotraumix\Generator\Entity\BaroEntity;
 
 /**
@@ -16,54 +17,61 @@ use Barotraumix\Generator\Entity\BaroEntity;
 class Services {
 
   /**
-   * @var Core - Core service.
+   * @var Framework - Barotrauma modding framework service.
    */
-  protected Core $core;
+  public static Framework $framework;
+
+  /**
+   * @var SteamCMD SteamCMD connector service.
+   */
+  public static  SteamCMD $steam;
 
   /**
    * @var Settings - Mapping for tags with incorrect tag name case.
    */
-  protected Settings $mappingTags;
+  public static Settings $mappingTags;
 
   /**
    * @var Settings - Mapping for entities with incorrect tag name.
    */
-  protected Settings $mappingEntities;
+  public static Settings $mappingEntities;
 
   /**
    * Storage for content of this application.
    */
-  protected Bank $bank;
+  public static  Database $database;
 
   /**
    * Class constructor.
    */
-  public function __construct(Core $core) {
-    $this->core = $core;
-    $this->mappingTags = new Settings('mapping.tags.yml');
-    $this->mappingEntities = new Settings('mapping.entity.yml');
-    $this->bank = $core->bank();
-    // Detect context name.
-    $applications = $core->settings()->get('applications');
-    foreach ($applications as $context => $data) {
-      if ($data['appId'] == $appId && $data['buildId'] == $buildId) {
-        $this->context = $context;
-        break;
-      }
-    }
-    // Throw error.
-    if (!isset($this->context)) {
-      Core::error("Unable to find context for this application. (app: $appId, build: $buildId)");
-    }
+  public function __construct() {
+    // Initialize framework utilities.
+    static::$framework = new Framework();
+    // Create Steam connector service and storage.
+    static::$steam = new SteamCMD();
+    // Initialize database for objects.
+    static::$database = new Database();
+    // Process additional settings.
+    static::$mappingTags = new Settings('mapping.tags.yml');
+    static::$mappingEntities = new Settings('mapping.entity.yml');
   }
 
   /**
-   * Method to expose Core service for public use.
+   * Method to get framework service object.
    *
    * @return Core
    */
-  public function core(): Core {
-    return $this->core;
+  public static function framework(): Framework {
+    return static::$framework;
+  }
+
+  /**
+   * Method to get data storage.
+   *
+   * @return Database
+   */
+  public function bank(): Database {
+    return $this->bank;
   }
 
   /**
@@ -71,8 +79,8 @@ class Services {
    *
    * @return Settings
    */
-  public function mappingTags(): Settings {
-    return $this->mappingTags;
+  public static function mappingTags(): Settings {
+    return static::$mappingTags;
   }
 
   /**
@@ -80,35 +88,8 @@ class Services {
    *
    * @return Settings
    */
-  public function mappingEntities(): Settings {
-    return $this->mappingEntities;
-  }
-
-  /**
-   * Method to normalize tag name.
-   *
-   * @param string $name - XML tag name.
-   *
-   * @return string
-   */
-  public function normalizeTag(string $name): string {
-    // Look for appropriate name in mapping.
-    if ($this->mappingTags->has($name)) {
-      $name = $this->mappingTags->get($name);
-    }
-    // Return normalized value.
-    return strval($name);
-  }
-
-  /**
-   * Method to prepare real path by relative path.
-   *
-   * @param $path - Relative path (relative to project root).
-   *
-   * @return string
-   */
-  public function pathPrepare($path): string {
-    return $this->core->pathGame() . '/' . $this->appId() . '/' . $this->buildId() . '/' . $path;
+  public static function mappingEntities(): Settings {
+    return static::$mappingEntities;
   }
 
   /**

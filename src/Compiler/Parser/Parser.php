@@ -5,11 +5,11 @@
  * Parser service which is aimed to help with parsing of mod source files.
  */
 
-namespace Barotraumix\Generator\Builder\Parser;
+namespace Barotraumix\Generator\Compiler\Parser;
 
-use Barotraumix\Generator\Builder\BuilderInterface;
+use Barotraumix\Generator\Compiler\CompilerInterface;
 use Barotraumix\Generator\Core;
-use Barotraumix\Generator\Bank;
+use Barotraumix\Generator\Services\Database;
 
 /**
  * Class definition.
@@ -17,9 +17,9 @@ use Barotraumix\Generator\Bank;
 class Parser {
 
   /**
-   * @var Bank - Storage bank.
+   * @var Database - Storage bank.
    */
-  protected Bank $bank;
+  protected Database $bank;
 
   /**
    * @var Functions - Service to work with functions.
@@ -29,9 +29,9 @@ class Parser {
   /**
    * Object constructor.
    *
-   * @param Bank $bank - Storage for variables and context.
+   * @param Database $bank - Storage for variables and context.
    */
-  public function __construct(Bank $bank, BuilderInterface $builder) {
+  public function __construct(Database $bank, CompilerInterface $builder) {
     $this->bank = $bank;
     $this->functions = new Functions($bank, $builder, $this);
   }

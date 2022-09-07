@@ -5,7 +5,7 @@
  * Trait to handle object value.
  */
 
-namespace Barotraumix\Generator\BaroEntity\Property;
+namespace Barotraumix\Generator\Entity\Property;
 
 /**
  * Trait definition.

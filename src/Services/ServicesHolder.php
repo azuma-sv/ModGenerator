@@ -5,9 +5,7 @@
  * Objects which use Drupal services container should use this trait.
  */
 
-namespace Barotraumix\Generator\Entity\Property;
-
-use Barotraumix\Generator\Services;
+namespace Barotraumix\Generator\Services;
 
 /**
  * Trait definition.
@@ -22,7 +20,7 @@ trait ServicesHolder {
     /**
      * Services container.
      *
-     * @return Services
+     * @return \Barotraumix\Generator\Services\Services
      */
     public function services(): Services {
         return $this->services;

@@ -7,12 +7,12 @@
  * @todo: Implement and use parser interface.
  */
 
-namespace Barotraumix\Generator\Builder;
+namespace Barotraumix\Generator\Compiler;
 
 /**
  * Interface ParserInterface.
  */
-interface BuilderInterface {
+interface CompilerInterface {
 
   /**
    * @const string - Contains a string to reference name of the mod which we are generating.

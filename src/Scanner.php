@@ -5,18 +5,15 @@
  * Contains a functionality to scan Barotrauma source files.
  *
  * Mostly this class helps to determine and create proper parsers to explore
- *   source files of barotrauma.
+ *   source files of barotrauma and mods.
  */
 
 namespace Barotraumix\Generator;
 
-use Barotraumix\Generator\BaroEntity\Entity\Asset;
-use Barotraumix\Generator\BaroEntity\Entity\BaseEntity;
-use Barotraumix\Generator\BaroEntity\Entity\ContentPackage;
-use Barotraumix\Generator\BaroEntity\Entity\Item;
-use Barotraumix\Generator\BaroEntity\Property\ServicesHolder;
-use Barotraumix\Generator\BaroEntity\SanitizedXMLData;
+use Barotraumix\Generator\Entity\BaroEntity;
 use Barotraumix\Generator\Parser\ParserInterface;
+use Barotraumix\Generator\Services\Services;
+use Barotraumix\Generator\Services\ServicesHolder;
 
 /**
  * Class Scanner.
@@ -27,6 +24,16 @@ class Scanner {
    * Inject services object.
    */
   use ServicesHolder;
+
+  /**
+   * @var int - Application ID.
+   */
+  protected int $appId;
+
+  /**
+   * @var int - Build ID of the application.
+   */
+  protected int $buildId;
 
   /**
    * @var null|string $parserClass - Class to use as parser for this
@@ -42,12 +49,11 @@ class Scanner {
   /**
    * Class constructor.
    *
-   * @param int $appId - ID of the app in Steam.
-   * @param int $buildId - Build id of the app in Steam.
+   * @param Services $services - Services object.
    */
-  public function __construct(int $appId, int $buildId, Core $core) {
+  public function __construct(Services $services) {
     // Create services object.
-    $this->setServices(new Services($appId, $buildId, $core));
+    $this->setServices($services);
     // Assign parser class. At current moment we have only one.
     // New Parser might appear when Barotrauma will make significant
     // changes in their files and their structure.
@@ -55,67 +61,105 @@ class Scanner {
   }
 
   /**
+   * Returns application ID.
+   *
+   * @return int
+   */
+  public function appId(): int {
+    return $this->appId;
+  }
+
+  /**
+   * Returns build id of the application.
+   *
+   * @return int
+   */
+  public function buildId(): int {
+    return $this->buildId;
+  }
+
+  /**
+   * Check if current application is Barotrauma game.
+   *
+   * @return bool
+   */
+  public function isGame(): bool {
+    return Core::BAROTRAUMA_APP_ID == $this->appId();
+  }
+
+  /**
+   * Check if current application is Barotrauma mod.
+   *
+   * @return bool
+   */
+  public function isMod(): bool {
+    return !$this->isGame();
+  }
+
+  /**
    * Return array of data of the content package.
    *
-   * @return BaseEntity
+   * @todo: Test scenario with multiple content packages.
+   *
+   * @param string|NULL $name - Content package name. Leave blank to get all.
+   *
+   * @return BaroEntity|array|NULL
    */
-  public function contentPackage(): BaseEntity {
-    // Create BaroEntity.
-    return ContentPackage::createFrom($this->createParser()
-      ->sanitizedXMLData(), $this->services());
+  public function contentPackage(string $name = NULL): BaroEntity|array|NULL {
+    $contentPackages = $this->createParser()->doParse();
+    if (isset($name)) {
+      $contentPackages = $contentPackages[$name] ?? NULL;
+    }
+    return $contentPackages;
   }
 
   /**
    * Return array of data with items.
    *
-   * @todo: Implement for mods as well.
+   * @todo: Refactor when method isItem is refactored.
    *
    * @return array
    */
   public function items(): array {
-    $contentPackage = $this->contentPackage();
-    $assets = $contentPackage->getChildrenByType($this->services()->getItemTypes());
+    $contentPackage = $this->contentPackage('Vanilla');
+    $assets = $contentPackage->childrenByTypes('Item');
     $mappingEntities = $this->services()->mappingEntities();
     $items = [];
-    /** @var Asset $asset */
     foreach ($assets as $asset) {
-      $file = $asset->getAttribute('file');
+      $file = $asset->attribute('file');
       $parser = $this->createParser($file);
-      $data = $parser->sanitizedXMLData();
-      /** @var SanitizedXMLData $child */
-      if (!$data->hasChildren()) {
-        // Skip file.
-        continue;
-      }
-      // Check if we have only single child.
-      $name = $data->getName();
-      $pseudoName = $name;
-      if ($mappingEntities->has($pseudoName)) {
-        $pseudoName = $mappingEntities->get($pseudoName);
-      }
-      // Prepare children array.
-      if ($pseudoName == 'Item') {
-        $children = [$data];
-      }
-      if ($pseudoName == 'Items') {
-        $children = $data->getChildren();
-      }
-      // Throw error.
-      if (!isset($children)) {
-        Core::error('Unable to get children of the entity.');
-        return $items;
-      }
-      // Check each child.
-      foreach ($children as $child) {
-        if ($this->services()->isItem($child)) {
-          $items[] = Item::createFrom($child, $this->services());
-        }
-        else {
-          // Can be used to add new values to YAML.
-          // $mappingEntities->set($child->getName(), 'Item');
-          Core::error('This case needs attention. Name of the element is: ' . $child->getName());
-        }
-      }
+      $parser->doParse();
+//      $data = $parser->doParse();
+//      $this->services()->processTree($data);
+      // @todo: Automatically add data to mapping.entity.yml.
+//      if (!$data->hasChildren()) {
+//        // Skip file.
+//        continue;
+//      }
+//      // Check if we have only single child.
+//      if ($data->type() == 'Item') {
+//        $children = [$data];
+//      }
+//      else {
+//        $children = $data->children();
+//      }
+//      // Throw error.
+//      if (!isset($children)) {
+//        Core::error('Unable to get children of the entity.');
+//        return $items;
+//      }
+//      // Check each child.
+//      foreach ($children as $child) {
+//        if ($child->type() == 'Item') {
+//
+//          $items[] = BaroEntity::createFrom($child, $this->services());
+//        }
+//        else {
+//          // Can be used to add new values to YAML.
+//          // $mappingEntities->set($child->getName(), 'Item');
+//          Core::error('This case needs attention. Name of the element is: ' . $child->getName());
+//        }
+//      }
     }
     // This item should never be a part of this mapping.
     $mappingEntities->delete('Items');
@@ -123,15 +167,6 @@ class Scanner {
     $mappingEntities->save();
     // Return parsed items.
     return $items;
-  }
-
-  /**
-   * Get array of application assets.
-   *
-   * @return array
-   */
-  public function assets(): array {
-    return $this->contentPackage()->getChildren();
   }
 
   /**
@@ -161,8 +196,8 @@ class Scanner {
 
     // Ensure that file path is reachable.
     if (!file_exists($path)) {
-      $appId = $services->appId();
-      $buildId = $services->buildId();
+      $appId = $this->appId();
+      $buildId = $this->buildId();
       $msg = "Unable to locate file '$file' of the app: $appId (build id: $buildId)";
       Core::error($msg);
     }
@@ -181,7 +216,7 @@ class Scanner {
    */
   public function gameLikePathToContentPackage(): null|string {
     $package = $this->primaryContentPackage();
-    if ($this->services()->isGame()) {
+    if ($this->isGame()) {
       $filePath = "Content/ContentPackages/$package.xml";
     }
     else {
@@ -197,7 +232,7 @@ class Scanner {
    * @return string
    */
   protected function primaryContentPackage(): string {
-    return $this->services()->isGame() ? 'Vanilla' : 'filelist';
+    return $this->isGame() ? 'Vanilla' : 'filelist';
   }
 
 }

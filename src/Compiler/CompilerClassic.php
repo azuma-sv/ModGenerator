@@ -2,21 +2,21 @@
 
 /**
  * @file
- * XML Builder class.
+ * XML Compiler class.
  */
 
-namespace Barotraumix\Generator\Builder;
+namespace Barotraumix\Generator\Compiler;
 
-use Barotraumix\Generator\Builder\Parser\Parser;
-use Barotraumix\Generator\Entity\BaroEntity;
+use Barotraumix\Generator\Compiler\Parser\Parser;
 use Barotraumix\Generator\Core;
-use Barotraumix\Generator\Bank;
+use Barotraumix\Generator\Entity\BaroEntity;
+use Barotraumix\Generator\Services\Database;
 use SimpleXMLElement;
 
 /**
  * Class definition.
  */
-class BuilderClassic implements BuilderInterface {
+class CompilerClassic implements CompilerInterface {
 
   /**
    * @var string - Output path.
@@ -24,9 +24,9 @@ class BuilderClassic implements BuilderInterface {
   protected string $path;
 
   /**
-   * @var Bank - Storage bank.
+   * @var Database - Storage bank.
    */
-  protected Bank $bank;
+  protected Database $bank;
 
   /**
    * @var Parser - Mod Generator syntax parser.
@@ -37,9 +37,9 @@ class BuilderClassic implements BuilderInterface {
    * Class constructor.
    *
    * @param string $path - Output path.
-   * @param Bank $bank - Storage bank.
+   * @param Database $bank - Storage bank.
    */
-  public function __construct(string $path, Bank $bank) {
+  public function __construct(string $path, Database $bank) {
     // Output path.
     $this->path = $path;
     // Storage banks.

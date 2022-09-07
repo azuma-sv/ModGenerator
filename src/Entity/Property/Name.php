@@ -5,7 +5,7 @@
  * Trait to handle name.
  */
 
-namespace Barotraumix\Generator\BaroEntity\Property;
+namespace Barotraumix\Generator\Entity\Property;
 
 /**
  * Trait definition.
@@ -42,8 +42,7 @@ trait Name {
   /**
    * Set name for object.
    *
-   * @param string $name
-   *  Object name.
+   * @param string $name - Object name.
    */
   public function setName(string $name): void {
     $this->name = $name;

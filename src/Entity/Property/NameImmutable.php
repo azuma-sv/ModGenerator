@@ -5,7 +5,7 @@
  * Trait to handle name which can't be changed.
  */
 
-namespace Barotraumix\Generator\BaroEntity\Property;
+namespace Barotraumix\Generator\Entity\Property;
 
 use Barotraumix\Generator\Core;
 
@@ -22,8 +22,7 @@ trait NameImmutable {
   /**
    * Set name for object.
    *
-   * @param string $name
-   *  Object name.
+   * @param string $name - Object name.
    */
   public function setName(string $name): void {
     if (isset($this->name)) {

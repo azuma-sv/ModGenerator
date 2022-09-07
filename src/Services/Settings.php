@@ -4,7 +4,7 @@
  * Class to handle settings stored in YAML files.
  */
 
-namespace Barotraumix\Generator;
+namespace Barotraumix\Generator\Services;
 
 use Barotraumix\Generator\Entity\Property\NestedArray;
 use Symfony\Component\Yaml\Yaml;
@@ -32,13 +32,14 @@ class Settings {
   /**
    * Class constructor.
    *
-   * @param string $file - Path to file which will store settings.
+   * @param string $file - Path to file (relative to project root) with settings.
    * @param mixed $sort - Sorting parameter.
    */
   public function __construct(string $file, mixed $sort = NULL) {
-    $this->file = $file;
+    // @todo: Refactor sorting behavior.
     $this->sort = $sort;
-    $data = Yaml::parseFile($file);
+    $this->file = BASE_PATH . '/' . $file;
+    $data = Yaml::parseFile($this->file);
     $this->settings = is_array($data) ? $data : [];
   }
 
@@ -90,13 +91,13 @@ class Settings {
   }
 
   /**
-   * Method to delete variable from settings.
+   * Method to unset variable from settings.
    *
    * @param string|array $keys - Key to delete.
    *
    * @return void
    */
-  public function delete(string|array $keys): void {
+  public function unset(string|array $keys): void {
     // Should be an array in any case.
     if (is_scalar($keys)) {
       $keys = [$keys];
@@ -109,7 +110,7 @@ class Settings {
    *
    * @return array
    */
-  public function settings(): array {
+  public function array(): array {
     return $this->settings;
   }
 

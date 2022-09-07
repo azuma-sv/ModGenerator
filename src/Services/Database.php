@@ -5,16 +5,17 @@
  * Class to store all objects used in process of mod generation.
  */
 
-namespace Barotraumix\Generator;
+namespace Barotraumix\Generator\Services;
 
-use Barotraumix\Generator\Builder\BuilderInterface;
-use Barotraumix\Generator\Entity\Property\NestedArray;
+use Barotraumix\Generator\Compiler\CompilerInterface;
+use Barotraumix\Generator\Core;
 use Barotraumix\Generator\Entity\BaroEntity;
+use Barotraumix\Generator\Entity\Property\NestedArray;
 
 /**
  * Class definition.
  */
-class Bank {
+class Database {
 
   /**
    * @var Core - Core service.
@@ -28,16 +29,9 @@ class Bank {
     'contexts' => [],
     'variables' => [
       'global' => [],
-      BuilderInterface::CONTEXT_SELF => [],
+      CompilerInterface::CONTEXT_SELF => [],
     ],
   ];
-
-  /**
-   * Class constructor.
-   */
-  public function __construct(Core $core) {
-    $this->core = $core;
-  }
 
   /**
    * Method to store mod data.
@@ -178,7 +172,7 @@ class Bank {
     if (is_scalar($keys)) {
       $keys = [$keys];
     }
-    $key = $isGlobal ? 'global' : BuilderInterface::CONTEXT_SELF;
+    $key = $isGlobal ? 'global' : CompilerInterface::CONTEXT_SELF;
     NestedArray::setValue($this->storage['variables'][$key], $keys, $variable);
   }
 
@@ -192,7 +186,7 @@ class Bank {
    * @return void
    */
   public function addVariables(array|string $variables, bool $isGlobal = FALSE): void {
-    $key = $isGlobal ? 'global' : BuilderInterface::CONTEXT_SELF;
+    $key = $isGlobal ? 'global' : CompilerInterface::CONTEXT_SELF;
     $source = $this->storage['variables'][$key];
     $destination = NestedArray::mergeDeep($source, $variables);
     $this->storage['variables'][$key] = $destination;
@@ -212,7 +206,7 @@ class Bank {
       $keys = [$keys];
     }
     $variables = $this->storage['variables'];
-    $variable = NestedArray::getValue($variables[BuilderInterface::CONTEXT_SELF], $keys, $key_exists);
+    $variable = NestedArray::getValue($variables[CompilerInterface::CONTEXT_SELF], $keys, $key_exists);
     // Return if key exists.
     if ($key_exists) {
       return $variable;
@@ -413,7 +407,7 @@ class Bank {
     // Provide contexts list by default.
     if (!isset($contexts)) {
       // We need to use context in opposite order.
-      $contexts = array_keys([BuilderInterface::CONTEXT_SELF => BuilderInterface::CONTEXT_SELF] + $this->applicationsOrder());
+      $contexts = array_keys([CompilerInterface::CONTEXT_SELF => CompilerInterface::CONTEXT_SELF] + $this->applicationsOrder());
     }
     // Always an array.
     if (is_scalar($contexts)) {
@@ -421,13 +415,13 @@ class Bank {
     }
     // Prepare storage for new entities.
     $storage = &$this->storage['contexts'];
-    if (empty($storage[BuilderInterface::CONTEXT_SELF])) {
-      $storage[BuilderInterface::CONTEXT_SELF] = [];
+    if (empty($storage[CompilerInterface::CONTEXT_SELF])) {
+      $storage[CompilerInterface::CONTEXT_SELF] = [];
     }
-    if (empty($storage[BuilderInterface::CONTEXT_SELF]['entities'])) {
-      $storage[BuilderInterface::CONTEXT_SELF]['entities'] = [];
+    if (empty($storage[CompilerInterface::CONTEXT_SELF]['entities'])) {
+      $storage[CompilerInterface::CONTEXT_SELF]['entities'] = [];
     }
-    $storageSelf = &$storage[BuilderInterface::CONTEXT_SELF]['entities'];
+    $storageSelf = &$storage[CompilerInterface::CONTEXT_SELF]['entities'];
     foreach ($contexts as $context) {
       // Nothing to search.
       if (empty($storage[$context]) || empty($storage[$context]['entities'])) {
@@ -442,12 +436,12 @@ class Bank {
       foreach ($filtered as $entity) {
         // Clone entity if needed.
         $filteredEntity = $entity;
-        if ($clone && $context != BuilderInterface::CONTEXT_SELF) {
+        if ($clone && $context != CompilerInterface::CONTEXT_SELF) {
           // Validate if entity has been replaced.
           if (isset($storageSelf[$entity->id()])) {
             $entityOld = $storageSelf[$entity->id()];
             $msg = 'Entity of type "' . $entityOld->type() . '" with ID "' . $entityOld->id() . '" has been replaced by entity of type "';
-            $msg .= $entity->type() . '" with ID "' . $entity->id() . '" (in a context: "' . BuilderInterface::CONTEXT_SELF . '")';
+            $msg .= $entity->type() . '" with ID "' . $entity->id() . '" (in a context: "' . CompilerInterface::CONTEXT_SELF . '")';
             Core::notice($msg);
           }
           // Clone entity and put it into storage.
