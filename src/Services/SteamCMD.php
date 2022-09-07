@@ -15,9 +15,9 @@ namespace Barotraumix\Generator;
 class SteamCMD {
 
     /**
-     * @var Core - Core service.
+     * @var string - Path to barotrauma files.
      */
-    protected Core $core;
+    protected string $path;
 
     /**
      * @var null|string - Storage for last executed command.
@@ -31,9 +31,11 @@ class SteamCMD {
 
     /**
      * Class constructor.
+     *
+     * @param string $path - Path to barotrauma files.
      */
-    public function __construct(Core $core) {
-        $this->core = $core;
+    public function __construct(string $path) {
+        $this->path = $path;
     }
 
     /**
@@ -50,7 +52,7 @@ class SteamCMD {
         $buildId = $this->parseBuildId($this->run($command));
         // Log errors.
         if (empty($buildId)) {
-            $appName = ($appId == Core::BAROTRAUMA_APP_ID) ? 'Barotrauma' : "the app: $appId";
+            $appName = ($appId == Core::BAROTRAUMA_APP_ID) ? Core::BAROTRAUMA_APP_NAME : "the app: $appId";
             $message = $this->prepareSteamLog("Failed to get Build ID of $appName");
             Core::error($message);
         }
@@ -74,7 +76,7 @@ class SteamCMD {
         // Get app build id from Steam.
         $buildId = $this->buildId($appId);
         // String which will help to log errors.
-        $appName = ($appId == Core::BAROTRAUMA_APP_ID) ? 'Barotrauma' : "the app: $appId";
+        $appName = ($appId == Core::BAROTRAUMA_APP_ID) ? Core::BAROTRAUMA_APP_NAME : "the app: $appId";
 
         // Log errors if build id is not available.
         if (empty($buildId)) {
@@ -275,7 +277,7 @@ class SteamCMD {
      * @return string
      */
     protected function preparePath(int $appId, int $buildId):string {
-        return $this->core->pathGame() . '/' . $appId . '/' . $buildId;
+      return $this->path . '/' . $appId . '/' . $buildId;
     }
 
     /**

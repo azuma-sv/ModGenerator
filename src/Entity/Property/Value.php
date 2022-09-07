@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Trait to handle value.
+ * Trait to handle object value.
  */
 
 namespace Barotraumix\Generator\BaroEntity\Property;
@@ -18,21 +18,25 @@ trait Value {
   protected mixed $value;
 
   /**
-   * Check object value.
-   *
-   * @return bool
-   */
-  public function hasValue():bool {
-    return isset($this->value);
-  }
-
-  /**
    * Get object value.
    *
    * @return mixed
    */
-  public function getValue():mixed {
+  public function value(): mixed {
+    // Prevent error.
+    if (!isset($this->value)) {
+      return NULL;
+    }
     return $this->value;
+  }
+
+  /**
+   * Check object value.
+   *
+   * @return bool
+   */
+  public function hasValue(): bool {
+    return isset($this->value);
   }
 
   /**

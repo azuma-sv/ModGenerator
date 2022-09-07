@@ -20,10 +20,23 @@ trait Name {
   /**
    * Get object name.
    *
-   * @return string
+   * @return string|NULL
    */
-  public function getName():string {
+  public function name(): string|NULL {
+    // Prevent error.
+    if (!isset($this->name)) {
+      return NULL;
+    }
     return $this->name;
+  }
+
+  /**
+   * Check name for object.
+   *
+   * @return bool
+   */
+  public function hasName(): bool {
+    return isset($this->name);
   }
 
   /**
@@ -32,7 +45,7 @@ trait Name {
    * @param string $name
    *  Object name.
    */
-  public function setName(string $name):void {
+  public function setName(string $name): void {
     $this->name = $name;
   }
 

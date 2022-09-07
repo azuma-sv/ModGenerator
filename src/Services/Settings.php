@@ -6,6 +6,7 @@
 
 namespace Barotraumix\Generator;
 
+use Barotraumix\Generator\Entity\Property\NestedArray;
 use Symfony\Component\Yaml\Yaml;
 
 /**
@@ -44,51 +45,67 @@ class Settings {
   /**
    * Method to store some data into settings.
    *
-   * @param string $key - Settings key.
+   * @param string|array $keys - Settings key.
    * @param mixed $value - Settings value.
    *
    * @return void
    */
-  public function set(string $key, mixed $value):void {
-    // Save value to settings array.
-    $this->settings[$key] = $value;
+  public function set(string|array $keys, mixed $value): void {
+    // Should be an array in any case.
+    if (is_scalar($keys)) {
+      $keys = [$keys];
+    }
+    // Set value.
+    NestedArray::setValue($this->settings, $keys, $value);
   }
 
   /**
    * Ensure that setting key exists in array.
    *
-   * @param string $key - Settings key.
+   * @param string|array $keys - Settings key.
    *
    * @return bool
    */
-  public function has(string $key):bool {
-    return array_key_exists($key, $this->settings);
+  public function has(string|array $keys): bool {
+    // Should be an array in any case.
+    if (is_scalar($keys)) {
+      $keys = [$keys];
+    }
+    return NestedArray::keyExists($this->settings, $keys);
   }
 
   /**
    * Return value from settings array.
    *
-   * @param string $key - Settings key.
+   * @param string|array $keys - Settings key.
    *
    * @return mixed
    */
-  public function get(string $key):mixed {
-    return $this->settings[$key];
+  public function get(string|array $keys): mixed {
+    // Should be an array in any case.
+    if (is_scalar($keys)) {
+      $keys = [$keys];
+    }
+    return NestedArray::getValue($this->settings, $keys);
   }
 
   /**
    * Method to delete variable from settings.
    *
-   * @param string $key - Key to delete.
+   * @param string|array $keys - Key to delete.
    *
    * @return void
    */
-  public function delete(string $key): void {
-    unset($this->settings[$key]);
+  public function delete(string|array $keys): void {
+    // Should be an array in any case.
+    if (is_scalar($keys)) {
+      $keys = [$keys];
+    }
+    NestedArray::unsetValue($this->settings, $keys);
   }
 
   /**
-   * Return raw array with settings.
+   * Return raw array with settings (without reference).
    *
    * @return array
    */
@@ -101,9 +118,8 @@ class Settings {
    *
    * @return void
    */
-  public function save():void {
+  public function save(): void {
     // Default sort.
-    // @todo: Implement more ways to sort.
     if (!isset($this->sort)) {
       ksort($this->settings, SORT_STRING | SORT_FLAG_CASE);
     }

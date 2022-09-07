@@ -5,9 +5,8 @@
  * Objects which use Drupal services container should use this trait.
  */
 
-namespace Barotraumix\Generator\BaroEntity\Property;
+namespace Barotraumix\Generator\Entity\Property;
 
-use Barotraumix\Generator\Core;
 use Barotraumix\Generator\Services;
 
 /**
@@ -16,7 +15,7 @@ use Barotraumix\Generator\Services;
 trait ServicesHolder {
 
     /**
-     * @var Services $services - Injected services container.
+     * @var Services $services - Injected services.
      */
     protected Services $services;
 
@@ -25,7 +24,7 @@ trait ServicesHolder {
      *
      * @return Services
      */
-    public function services():Services {
+    public function services(): Services {
         return $this->services;
     }
 
@@ -36,11 +35,7 @@ trait ServicesHolder {
      *
      * @return void
      */
-    public function setServices(Services $services):void {
-        // Set services if they don't exist.
-        if (isset($this->services)) {
-            Core::error('Container was already set.');
-        }
+    public function setServices(Services $services): void {
         $this->services = $services;
     }
 

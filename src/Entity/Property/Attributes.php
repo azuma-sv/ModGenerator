@@ -25,7 +25,7 @@ trait Attributes {
    *
    * @return string
    */
-  public function getAttribute(string $attribute):string {
+  public function attribute(string $attribute): string {
     return $this->attributes[$attribute];
   }
 
@@ -37,7 +37,7 @@ trait Attributes {
    *
    * @return bool
    */
-  public function hasAttribute(string $attribute):bool {
+  public function hasAttribute(string $attribute): bool {
     return array_key_exists($attribute, $this->attributes);
   }
 
@@ -49,7 +49,7 @@ trait Attributes {
    * @param string $value
    *  Attribute value.
    */
-  public function setAttribute(string $attribute, string $value):void {
+  public function setAttribute(string $attribute, string $value): void {
     $this->attributes[$attribute] = $value;
   }
 
@@ -58,17 +58,17 @@ trait Attributes {
    *
    * @return array
    */
-  public function getAttributes():array {
+  public function attributes(): array {
     return $this->attributes;
   }
 
   /**
-   * Set attributes for object.
+   * Adds additional attributes to object.
    *
    * @param array $attributes
    *  Array of attributes.
    */
-  public function setAttributes(array $attributes):void {
+  public function addAttributes(array $attributes): void {
     // For validation purpose.
     foreach ($attributes as $attribute => $value) {
       $this->setAttribute($attribute, $value);
