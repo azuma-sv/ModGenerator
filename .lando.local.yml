@@ -1,8 +1,0 @@
-config:
-  xdebug: true
-services:
-  appserver:
-    overrides:
-      environment:
-        PHP_IDE_CONFIG: "serverName=ModGenerator"
-        XDEBUG_SESSION_START: lando
