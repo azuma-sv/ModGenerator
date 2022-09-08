@@ -137,9 +137,7 @@ class Core {
         // Save build ID value.
         if (!empty($buildId)) {
           // Update barotrauma build id.
-
-          Framework::$settings->set(['applications', $app, 'buildId'], $buildId);
-          Framework::$settings->save();
+          Services::buildId($id, $buildId);
         }
         else {
           Framework::error('Unable to update app: ' . $app);
