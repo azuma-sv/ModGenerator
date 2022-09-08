@@ -10,8 +10,6 @@
 
 namespace Barotraumix\Framework\Services;
 
-use Barotraumix\Framework\Core;
-
 /**
  * Class SteamCMD.
  */
@@ -25,15 +23,15 @@ class SteamCMD {
    *
    * @return null|string
    */
-  public function buildId(int $appId = Core::BAROTRAUMA_APP_ID): null|string {
+  public function buildId(int $appId = Framework::BAROTRAUMA_APP_ID): null|string {
     // Attempt to get build id.
     $command = "+app_info_update 1 +app_info_print '$appId'";
     $buildId = $this->parseBuildId($this->run($command));
     // Log errors.
     if (empty($buildId)) {
-      $appName = ($appId == Core::BAROTRAUMA_APP_ID) ? Core::BAROTRAUMA_APP_NAME : "the app: $appId";
+      $appName = ($appId == Framework::BAROTRAUMA_APP_ID) ? Framework::BAROTRAUMA_APP_NAME : "the app: $appId";
       $message = $this->prepareSteamLog("Failed to get Build ID of $appName");
-      Core::error($message);
+      Framework::error($message);
     }
     return $buildId;
   }
@@ -51,16 +49,16 @@ class SteamCMD {
    */
   public function appInstall(int $appId = NULL): int|bool|null {
     // Default value for appId.
-    $appId = $appId ?? Core::BAROTRAUMA_APP_ID;
+    $appId = $appId ?? Framework::BAROTRAUMA_APP_ID;
     // Get app build id from Steam.
     $buildId = $this->buildId($appId);
     // String which will help to log errors.
-    $appName = ($appId == Core::BAROTRAUMA_APP_ID) ? Core::BAROTRAUMA_APP_NAME : "the app: $appId";
+    $appName = ($appId == Framework::BAROTRAUMA_APP_ID) ? Framework::BAROTRAUMA_APP_NAME : "the app: $appId";
 
     // Log errors if build id is not available.
     if (empty($buildId)) {
       $message = "Failed to install $appName, can't get Build ID from Steam.";
-      Core::error($message);
+      Framework::error($message);
       return NULL;
     }
     // Append build id for logs.
@@ -69,7 +67,7 @@ class SteamCMD {
     // Prepare directory.
     if (!Framework::prepareDirectory(Framework::pathGame("$appId/$buildId"))) {
       $message = "Failed to install $appName, because of wrong file permissions.";
-      Core::error($message);
+      Framework::error($message);
       return NULL;
     }
 
@@ -143,7 +141,7 @@ class SteamCMD {
     $output = shell_exec($command);
     $this->lastCommandOutput($output);
     $message = $this->prepareSteamLog('SteamCMD has been executed.');
-    Core::debug($message);
+    Framework::debug($message);
 
     // Use cache.
     $this->cacheSet($command, $this->lastCommandOutput());
@@ -174,7 +172,7 @@ class SteamCMD {
     // Log error.
     if (!$status) {
       $message = $this->prepareSteamLog('SteamCMD has executed an update, but we haven\'t received "success" message.');
-      Core::error($message);
+      Framework::error($message);
     }
 
     // Return status.
