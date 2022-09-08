@@ -6,13 +6,12 @@
 
 require 'vendor/autoload.php';
 
-use Barotraumix\Generator\Core;
+use Barotraumix\Framework\Core;
 
-// @todo: Move to environment variable.
-const BASE_PATH = __DIR__;
+define("BASE_PATH", $_ENV['BASE_PATH'] ?? __DIR__);
 $core = Core::create();
 $core->initFramework();
 $core->steamUpdateGameAndMods();
 $core->importSourcesToDatabase();
 $core->compile();
-$core::services()::framework()::debug('Done!');
+$core::$services::$framework::debug('Done!');

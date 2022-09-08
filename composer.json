@@ -1,19 +1,20 @@
 {
-    "name": "barotraumix/generator",
-    "type": "project",
-    "autoload": {
-        "psr-4": {
-            "Barotraumix\\Generator\\": "src/"
-        }
-    },
-    "authors": [
-        {
-            "name": "Azuma"
-        }
-    ],
-    "require": {
-        "symfony/yaml": "^6.1",
-        "ext-simplexml": "*",
-        "ext-mbstring": "*"
+  "name": "barotraumix/framework",
+  "type": "project",
+  "autoload": {
+    "psr-4": {
+      "Barotraumix\\Framework\\": "src/"
     }
+  },
+  "authors": [
+    {
+      "name": "Azuma"
+    }
+  ],
+  "require": {
+    "symfony/yaml": "^6.1",
+    "ext-simplexml": "*",
+    "ext-mbstring": "*",
+    "ext-dom": "*"
+  }
 }

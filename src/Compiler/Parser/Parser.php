@@ -5,36 +5,15 @@
  * Parser service which is aimed to help with parsing of mod source files.
  */
 
-namespace Barotraumix\Generator\Compiler\Parser;
+namespace Barotraumix\Framework\Compiler\Parser;
 
-use Barotraumix\Generator\Compiler\CompilerInterface;
-use Barotraumix\Generator\Core;
-use Barotraumix\Generator\Services\Database;
+use Barotraumix\Framework\Services\Framework;
+use Barotraumix\Framework\Services\Services;
 
 /**
  * Class definition.
  */
 class Parser {
-
-  /**
-   * @var Database - Storage bank.
-   */
-  protected Database $bank;
-
-  /**
-   * @var Functions - Service to work with functions.
-   */
-  protected Functions $functions;
-
-  /**
-   * Object constructor.
-   *
-   * @param Database $bank - Storage for variables and context.
-   */
-  public function __construct(Database $bank, CompilerInterface $builder) {
-    $this->bank = $bank;
-    $this->functions = new Functions($bank, $builder, $this);
-  }
 
   /**
    * Method to check if current string contains an attribute.
@@ -43,7 +22,7 @@ class Parser {
    *
    * @return bool
    */
-  public function isAttribute(string $string): bool {
+  public static function isAttribute(string $string): bool {
     // @todo: Test this regexp.
     preg_match('/^[a-zA-Z\d\-_]*$/', $string, $matches);
     $attribute = reset($matches);
@@ -60,17 +39,8 @@ class Parser {
    *
    * @return bool
    */
-  public function isQuery(string $string): bool {
-    return !$this->functions->isFunction($string) && !$this->isAttribute($string);
-  }
-
-  /**
-   * Service to work with functions.
-   *
-   * @return Functions
-   */
-  public function functions(): Functions {
-    return $this->functions;
+  public static function isQuery(string $string): bool {
+    return !F::isFn($string) && !static::isAttribute($string);
   }
 
   /**
@@ -80,10 +50,10 @@ class Parser {
    *
    * @return array
    */
-  public function query(string $string): array {
+  public static function query(string $string): array {
     $query = [];
     // Split query into sections.
-    $inheritance = $this->explode('/,<,>', $string, TRUE, TRUE);
+    $inheritance = static::explode('/,<,>', $string, TRUE, TRUE);
     // Process each section.
     foreach ($inheritance as $section) {
       // Wrap sub-element search into parent array.
@@ -95,154 +65,10 @@ class Parser {
         continue;
       }
       // Combine query.
-      $querySection = $this->queryElement($section);
+      $querySection = static::queryElement($section);
       $query = $querySection + $query;
     }
     return $query;
-  }
-
-  /**
-   * Method to parse single section of filter rule.
-   *
-   * Section is a filter part which is located between letters like /, < or >.
-   * @see Parser::query().
-   *
-   * @param string $string - Rule part string.
-   *
-   * @return array
-   */
-  protected function queryElement(string $string): array {
-    $query = [];
-    // Grab entity name condition.
-    $ruleParts = $this->explode('@', $string);
-    // Matches everything.
-    if (empty($ruleParts)) {
-      return [
-        'entity' => '',
-        'attributes' => [],
-        'order' => 0,
-      ];
-    }
-    // Validate syntax.
-    if (count($ruleParts) > 2) {
-      Core::error('Invalid command syntax. Single query section can\'t contain more than one separator like "@" in command: ' . $string);
-    }
-    // @todo: Parse order.
-    $query['order'] = 0;
-    // Normal section.
-    if (count($ruleParts) == 2) {
-      $query['entity'] = reset($ruleParts);
-      $query['attributes'] = $this->queryAttributes(next($ruleParts));
-      return $query;
-    }
-    // In case if this code is executed - we have a section with only one part.
-    // And we need to figure what is in it? Condition for element or attribute?
-    $rule = reset($ruleParts);
-    $boolOperators = $this->explode('=,!,*,^,$', $rule);
-    if (count($boolOperators) > 1) {
-      $query['entity'] = '';
-      $query['attributes'] = $this->queryAttributes($rule);
-    }
-    else {
-      $query['entity'] = $rule;
-      $query['attributes'] = [];
-    }
-    return $query;
-  }
-
-  protected function queryAttributes(string $string): array {
-    $query = [];
-    // Parse operator conditions.
-    $operatorConditions = $this->explode('+,?', $string, TRUE);
-    // Convert query parts to array of conditions.
-    foreach ($operatorConditions as $position => $operatorSection) {
-      // Skip operators first.
-      if (in_array($operatorSection, ['+', '?'])) {
-        continue;
-      }
-      $operatorConditions[$position] = $this->queryAttribute($operatorSection);
-    }
-    // Process AND conditions first, because they have higher priority.
-    $last = NULL;
-    foreach ($operatorConditions as $position => $operatorSection) {
-      // Skip everything what is not an AND condition.
-      if ($operatorSection != '+') {
-        // Break join sequence.
-        if ($operatorSection == '?') {
-          $join = NULL;
-        }
-        // Add new element.
-        if (isset($join)) {
-          // Add new condition.
-          $operatorConditions[$join]['and'][] = $operatorSection;
-          // Unset processed elements.
-          unset($operatorConditions[$position]);
-        }
-        // Set last element.
-        $last = $position;
-        continue;
-      }
-      // Parse error.
-      if (!isset($last, $operatorConditions[$last]) || $operatorConditions[$last] == '?') {
-        Core::error('Invalid command syntax. Unable to parse comparison operator: "' . $string);
-      }
-      // Join AND operators.
-      if (!isset($join)) {
-        $join = $position;
-        // Set query parameters.
-        $operatorConditions[$join] = ['and' => [$operatorConditions[$last]]];
-        // Unset processed elements.
-        unset($operatorConditions[$last]);
-      }
-    }
-    // Process OR conditions.
-    foreach ($operatorConditions as $operatorSection) {
-      // Add new element.
-      if ($operatorSection == '?') {
-        continue;
-      }
-      // Add new condition.
-      $query[] = $operatorSection;
-    }
-    return $query;
-  }
-
-  protected function queryAttribute(string $string): array {
-    // Check comparison rule.
-    $comparisonArguments = $this->explode('=,!,*,^,$', $string, TRUE);
-    // Syntax error.
-    if (count($comparisonArguments) != 3) {
-      Core::error('Invalid command syntax. Unable to parse comparison operator: "' . $string);
-    }
-    // Process conditions.
-    [$attribute, $comparison, $value] = array_values($comparisonArguments);
-    // Parse additional conditions (in case if we should convert value to array).
-    preg_match('/^".*"]"$/', $value, $matches);
-    $strict = reset($matches);
-    if (empty($strict)) {
-      // Array AND/OR condition.
-      preg_match('/^\[.*\]$/', $value, $matches);
-      $isArray = reset($matches);
-      // Cut off letters like: [$value].
-      $value = $isArray ? mb_substr($value, 1, mb_strlen($value) - 2) : $value;
-      // Set proper comparison operator.
-      $comparison = $isArray ? '+' . $comparison : '?' . $comparison;
-      $isArray = $isArray || mb_strpos($value, ',');
-      // We should convert this value to array.
-      if ($isArray) {
-        $value = explode(',', $value);
-      }
-    }
-    else {
-      // Cut off letters like: "$value".
-      $value = mb_substr($value, 1, mb_strlen($value) - 2);
-      $comparison .= '=';
-    }
-    return [
-      'attribute' => mb_strtolower($attribute),
-      'operator' => $comparison,
-      'value' => $value,
-    ];
   }
 
   /**
@@ -258,12 +84,12 @@ class Parser {
    *
    * @return array
    */
-  public function explode(array|string $delimiters, string $string, bool $include = FALSE, bool $reverse = FALSE): array {
+  public static function explode(array|string $delimiters, string $string, bool $include = FALSE, bool $reverse = FALSE): array {
     // Always an array.
     if (is_scalar($delimiters)) {
       $delimiters = explode(',', $delimiters);
     }
-    $positions = $this->findSyntaxLetters($delimiters, $string);
+    $positions = static::findSyntaxLetters($delimiters, $string);
     $exploded = [];
     $offset = mb_strlen($string);
     $positions = array_reverse($positions, TRUE);
@@ -294,7 +120,7 @@ class Parser {
    *
    * @return array
    */
-  public function findSyntaxLetters(array|string $letters, string $string): array {
+  public static function findSyntaxLetters(array|string $letters, string $string): array {
     // Always an array.
     if (is_scalar($letters)) {
       $letters = explode(',', $letters);
@@ -302,7 +128,7 @@ class Parser {
     // Find occurrences.
     $occurrences = [];
     foreach ($letters as $letter) {
-      $positions = $this->findSyntaxLetter($letter, $string);
+      $positions = static::findSyntaxLetter($letter, $string);
       $occurrences += $positions;
     }
     // Sort results and return.
@@ -324,8 +150,8 @@ class Parser {
    *
    * @return array
    */
-  public function findSyntaxLetter(string $letter, string $string): array {
-    $scope = $this->highlightSyntax($string);
+  public static function findSyntaxLetter(string $letter, string $string): array {
+    $scope = static::highlightSyntax($string);
     // Look for instances.
     $offset = 0;
     $length = mb_strlen($letter);
@@ -351,15 +177,15 @@ class Parser {
    *
    * @return string
    */
-  public function highlightSyntax(string $string): string {
+  public static function highlightSyntax(string $string): string {
     // Remove reserved Barotrauma syntax (case insensitive).
     $reserved = ['%ModDir%'];
     foreach ($reserved as $text) {
       // We will use just empty whitespace as replacement.
-      $string = str_ireplace($text, $this->getWhiteSpace($string), $string);
+      $string = str_ireplace($text, static::getWhiteSpace($string), $string);
     }
     // Remove protection letters and letters which are protected by them.
-    $string = $this->removeProtectionLetters($string, TRUE);
+    $string = static::removeProtectionLetters($string, TRUE);
     // Content in "", '' or [] - needs to be replaced with whitespace.
     $start = $started = FALSE;
     $whiteSpace = $trigger = '';
@@ -380,7 +206,7 @@ class Parser {
       if (!empty($started)) {
         // Validate content.
         if ($letter == '[') {
-          Core::error('Invalid syntax in a command. Parser do not allow to use arrays inside of arrays [[]]: ' . $string);
+          Framework::error('Invalid syntax in a command. Parser do not allow to use arrays inside of arrays [[]]: ' . $string);
         }
         // We should use % as is to replace them with variables.
         if ($letter == '%') {
@@ -400,7 +226,7 @@ class Parser {
     }
     // Invalid syntax.
     if ($started) {
-      Core::error('Invalid syntax in a command. Unterminated wrapper: ' . $trigger);
+      Framework::error('Invalid syntax in a command. Unterminated wrapper: ' . $trigger);
     }
     // Return string prepared for syntax parser.
     return $string;
@@ -415,7 +241,7 @@ class Parser {
    *
    * @return string
    */
-  public function removeProtectionLetters(string $string, bool $whitespace = FALSE): string {
+  public static function removeProtectionLetters(string $string, bool $whitespace = FALSE): string {
     // Remove protection letters and letters which are protected by them.
     $position = 0;
     $scope = $string;
@@ -451,9 +277,9 @@ class Parser {
    *
    * @return string
    */
-  public function applyVariables(string $string): string {
+  public static function applyVariables(string $string): string {
     // Look for possible variables.
-    $positions = $this->findSyntaxLetter('%', $string);
+    $positions = static::findSyntaxLetter('%', $string);
     if (empty($positions)) {
       return $string;
     }
@@ -470,7 +296,7 @@ class Parser {
       }
       // Get variable (skip % sign).
       $keys = explode('>', mb_substr($token, 1));
-      $variable = $this->bank->variable($keys);
+      $variable = Services::$database->variable($keys);
       // Convert arrays to string.
       if (is_array($variable)) {
         $variable = implode(',', $variable);
@@ -478,7 +304,7 @@ class Parser {
       // Every variable may contain another variable inside it.
       if (is_scalar($variable)) {
         // Recursive replacement.
-        $variable = $this->applyVariables(strval($variable));
+        $variable = static::applyVariables(strval($variable));
       }
       // Apply changes.
       $string = substr_replace($string, $variable, $position, mb_strlen($token));
@@ -493,8 +319,166 @@ class Parser {
    *
    * @return string
    */
-  public function getWhiteSpace(string $string): string {
+  public static function getWhiteSpace(string $string): string {
     return str_repeat(' ', mb_strlen($string));
+  }
+
+  /**
+   * Method to parse single section of filter rule.
+   *
+   * Section is a filter part which is located between letters like /, < or >.
+   * @see Parser::query().
+   *
+   * @param string $string - Rule part string.
+   *
+   * @return array
+   */
+  protected static function queryElement(string $string): array {
+    $query = [];
+    // Grab entity name condition.
+    $ruleParts = static::explode('@', $string);
+    // Matches everything.
+    if (empty($ruleParts)) {
+      return [
+        'entity' => '',
+        'attributes' => [],
+        'order' => 0,
+      ];
+    }
+    // Validate syntax.
+    if (count($ruleParts) > 2) {
+      Framework::error('Invalid command syntax. Single query section can\'t contain more than one separator like "@" in command: ' . $string);
+    }
+    // @todo: Parse order.
+    $query['order'] = 0;
+    // Normal section.
+    if (count($ruleParts) == 2) {
+      $query['entity'] = reset($ruleParts);
+      $query['attributes'] = static::queryAttributes(next($ruleParts));
+      return $query;
+    }
+    // In case if this code is executed - we have a section with only one part.
+    // And we need to figure what is in it? Condition for element or attribute?
+    $rule = reset($ruleParts);
+    $boolOperators = static::explode('=,!,*,^,$', $rule);
+    if (count($boolOperators) > 1) {
+      $query['entity'] = '';
+      $query['attributes'] = static::queryAttributes($rule);
+    }
+    else {
+      $query['entity'] = $rule;
+      $query['attributes'] = [];
+    }
+    return $query;
+  }
+
+  /**
+   * Method to parse attribute conditions.
+   *
+   * @param string $string
+   *
+   * @return array
+   */
+  protected static function queryAttributes(string $string): array {
+    $query = [];
+    // Parse operator conditions.
+    $operatorConditions = static::explode('+,?', $string, TRUE);
+    // Convert query parts to array of conditions.
+    foreach ($operatorConditions as $position => $operatorSection) {
+      // Skip operators first.
+      if (in_array($operatorSection, ['+', '?'])) {
+        continue;
+      }
+      $operatorConditions[$position] = static::queryAttribute($operatorSection);
+    }
+    // Process AND conditions first, because they have higher priority.
+    $last = NULL;
+    foreach ($operatorConditions as $position => $operatorSection) {
+      // Skip everything what is not an AND condition.
+      if ($operatorSection != '+') {
+        // Break join sequence.
+        if ($operatorSection == '?') {
+          $join = NULL;
+        }
+        // Add new element.
+        if (isset($join)) {
+          // Add new condition.
+          $operatorConditions[$join]['and'][] = $operatorSection;
+          // Unset processed elements.
+          unset($operatorConditions[$position]);
+        }
+        // Set last element.
+        $last = $position;
+        continue;
+      }
+      // Parse error.
+      if (!isset($last, $operatorConditions[$last]) || $operatorConditions[$last] == '?') {
+        Framework::error('Invalid command syntax. Unable to parse comparison operator: "' . $string);
+      }
+      // Join AND operators.
+      if (!isset($join)) {
+        $join = $position;
+        // Set query parameters.
+        $operatorConditions[$join] = ['and' => [$operatorConditions[$last]]];
+        // Unset processed elements.
+        unset($operatorConditions[$last]);
+      }
+    }
+    // Process OR conditions.
+    foreach ($operatorConditions as $operatorSection) {
+      // Add new element.
+      if ($operatorSection == '?') {
+        continue;
+      }
+      // Add new condition.
+      $query[] = $operatorSection;
+    }
+    return $query;
+  }
+
+  /**
+   * Method to parse single attribute condition.
+   *
+   * @param string $string
+   *
+   * @return array
+   */
+  protected static function queryAttribute(string $string): array {
+    // Check comparison rule.
+    $comparisonArguments = static::explode('=,!,*,^,$', $string, TRUE);
+    // Syntax error.
+    if (count($comparisonArguments) != 3) {
+      Framework::error('Invalid command syntax. Unable to parse comparison operator: "' . $string);
+    }
+    // Process conditions.
+    [$attribute, $comparison, $value] = array_values($comparisonArguments);
+    // Parse additional conditions (in case if we should convert value to array).
+    preg_match('/^".*"$/', $value, $matches);
+    $strict = reset($matches);
+    if (empty($strict)) {
+      // Array AND/OR condition.
+      preg_match('/^\[.*]$/', $value, $matches);
+      $isArray = reset($matches);
+      // Cut off letters like: [$value].
+      $value = $isArray ? mb_substr($value, 1, mb_strlen($value) - 2) : $value;
+      // Set proper comparison operator.
+      $comparison = $isArray ? '+' . $comparison : '?' . $comparison;
+      $isArray = $isArray || mb_strpos($value, ',');
+      // We should convert this value to array.
+      if ($isArray) {
+        $value = explode(',', $value);
+      }
+    }
+    else {
+      // Cut off letters like: "$value".
+      $value = mb_substr($value, 1, mb_strlen($value) - 2);
+      $comparison .= '=';
+    }
+    return [
+      'attribute' => mb_strtolower($attribute),
+      'operator' => $comparison,
+      'value' => $value,
+    ];
   }
 
 }

@@ -4,7 +4,7 @@
  * Framework general settings.
  */
 
-namespace Barotraumix\Generator\Services;
+namespace Barotraumix\Framework\Services;
 
 /**
  * Class definition.
@@ -22,24 +22,45 @@ class Framework {
   const BAROTRAUMA_APP_NAME = 'Barotrauma';
 
   /**
+   * @const string - Contains a string to reference name of the mod which we are generating.
+   */
+  const CONTEXT = 'CONTEXT';
+
+  /**
+   * @const string - Primary mod file name.
+   */
+  const PRIMARY_MOD_FILE = 'filelist.mod.yml';
+
+  /**
    * @var Settings - Settings storage.
    */
   public static Settings $settings;
 
   /**
-   * Class constructor.
-   */
-  public function __construct() {
-    static::$settings = new Settings('settings.yml');
-  }
-
-  /**
-   * Returns an array of applications and their IDs.
+   * Method to get path to specific file or folder of specific application.
    *
-   * @return array
+   * @param string $file - File or folder to search.
+   * @param string $application - Application name.
+   * @param bool $validate - Ensure that file or folder exists.
+   *
+   * @return string
    */
-  public static function applications(): array {
-    return static::$settings->get('applications');
+  public static function getPath(string $file, string $application = Framework::BAROTRAUMA_APP_NAME, bool $validate = TRUE): string {
+    // Prepare path.
+    [$appId, $buildId] = array_values(Services::applicationIDs($application));
+    if (Services::isGame($application)) {
+      $path = Framework::pathGame("$appId/$buildId/$file");
+    }
+    else {
+      // @todo: Implement once mods are integrated.
+      $path = Framework::pathWorkshop("$appId/$buildId/$file");
+    }
+    // Ensure that file or folder path is reachable.
+    if ($validate && !file_exists($path)) {
+      $msg = "Unable to locate file or folder '$file' of the app: '$application'";
+      Framework::error($msg);
+    }
+    return $path;
   }
 
   /**
@@ -50,7 +71,11 @@ class Framework {
    * @return string
    */
   public static function pathGame(string $path = ''): string {
-    return static::pathPrepare(static::$settings->get('files')['game'] . "/$path");
+    static $game;
+    if (!isset($game)) {
+      $game = $_ENV['PATH_GAME'] ?? Framework::BAROTRAUMA_APP_NAME;
+    }
+    return static::pathPrepare("$game/$path");
   }
 
   /**
@@ -61,7 +86,11 @@ class Framework {
    * @return string
    */
   public static function pathWorkshop(string $path = ''): string {
-    return static::pathPrepare(static::$settings->get('files')['workshop'] . "/$path");
+    static $workshop;
+    if (!isset($workshop)) {
+      $workshop = $_ENV['PATH_WORKSHOP'] ?? 'WorkShop';
+    }
+    return static::pathPrepare("$workshop/$path");
   }
 
   /**
@@ -72,7 +101,11 @@ class Framework {
    * @return string
    */
   public static function pathInput(string $path = ''): string {
-    return static::pathPrepare(static::$settings->get('files')['input'] . "/$path");
+    static $input;
+    if (!isset($input)) {
+      $input = $_ENV['PATH_INPUT'] ?? 'ModSources';
+    }
+    return static::pathPrepare("$input/$path");
   }
 
   /**
@@ -83,22 +116,65 @@ class Framework {
    * @return string
    */
   public static function pathOutput(string $path = ''): string {
-    return static::pathPrepare(static::$settings->get('files')['output'] . "/$path");
+    static $output;
+    if (!isset($output)) {
+      $output = $_ENV['PATH_OUTPUT'] ?? 'LocalMods';
+    }
+    return static::pathPrepare("$output/$path");
   }
 
   /**
    * Method to prepare directory by path.
    *
    * @param string $path - Absolute path to directory.
+   * @param bool $isFilePath - Indicates that current path is a path to the file.
    *
    * @return bool
    */
-  public static function prepareDirectory(string $path): bool {
-    $status = file_exists($path);
+  public static function prepareDirectory(string $path, bool $isFilePath = FALSE): bool {
+    // Process file path.
+    if ($isFilePath) {
+      $pathParts = explode('/', $path);
+      if (count($pathParts) > 1) {
+        array_pop($pathParts);
+        $path = implode('/', $pathParts);
+      }
+    }
+    // Create directory.
+    $status = is_dir($path) && !is_link($path);
     if (!$status) {
       $status = mkdir($path, 0777, TRUE);
     }
     return $status;
+  }
+
+  /**
+   * Removes directory and it's content.
+   *
+   * @param string $path - Path to directory.
+   *
+   * @return bool
+   */
+  public static function removeDirectory(string $path): bool {
+    if (is_dir($path)) {
+      foreach (scandir($path) as $object) {
+        if ($object != '.' && $object != '..') {
+          $full = "$path/$object";
+          if (is_dir($full) && !is_link($full)) {
+            static::removeDirectory($full);
+          }
+          else {
+            if (!unlink($full)) {
+              return FALSE;
+            }
+          }
+        }
+      }
+      if (!rmdir($path)) {
+        return FALSE;
+      }
+    }
+    return TRUE;
   }
 
   /**

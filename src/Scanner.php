@@ -8,12 +8,12 @@
  *   source files of barotrauma and mods.
  */
 
-namespace Barotraumix\Generator;
+namespace Barotraumix\Framework;
 
-use Barotraumix\Generator\Entity\BaroEntity;
-use Barotraumix\Generator\Parser\ParserInterface;
-use Barotraumix\Generator\Services\Services;
-use Barotraumix\Generator\Services\ServicesHolder;
+use Barotraumix\Framework\Parser\ParserInterface;
+use Barotraumix\Framework\Entity\BaroEntity;
+use Barotraumix\Framework\Services\Framework;
+use Barotraumix\Framework\Services\Services;
 
 /**
  * Class Scanner.
@@ -21,19 +21,9 @@ use Barotraumix\Generator\Services\ServicesHolder;
 class Scanner {
 
   /**
-   * Inject services object.
+   * @var string - Application name to scan.
    */
-  use ServicesHolder;
-
-  /**
-   * @var int - Application ID.
-   */
-  protected int $appId;
-
-  /**
-   * @var int - Build ID of the application.
-   */
-  protected int $buildId;
+  protected string $application;
 
   /**
    * @var null|string $parserClass - Class to use as parser for this
@@ -49,15 +39,14 @@ class Scanner {
   /**
    * Class constructor.
    *
-   * @param Services $services - Services object.
+   * @param string $application - Application name to scan.
    */
-  public function __construct(Services $services) {
-    // Create services object.
-    $this->setServices($services);
+  public function __construct(string $application = Framework::BAROTRAUMA_APP_NAME) {
+    $this->application = $application;
     // Assign parser class. At current moment we have only one.
     // New Parser might appear when Barotrauma will make significant
     // changes in their files and their structure.
-    $this->parserClass = '\Barotraumix\Generator\Parser\ParserClassic';
+    $this->parserClass = '\Barotraumix\Framework\Parser\ParserClassic';
   }
 
   /**
@@ -66,7 +55,7 @@ class Scanner {
    * @return int
    */
   public function appId(): int {
-    return $this->appId;
+    return Services::$database->applications($this->application);
   }
 
   /**
@@ -75,57 +64,39 @@ class Scanner {
    * @return int
    */
   public function buildId(): int {
-    return $this->buildId;
-  }
-
-  /**
-   * Check if current application is Barotrauma game.
-   *
-   * @return bool
-   */
-  public function isGame(): bool {
-    return Core::BAROTRAUMA_APP_ID == $this->appId();
-  }
-
-  /**
-   * Check if current application is Barotrauma mod.
-   *
-   * @return bool
-   */
-  public function isMod(): bool {
-    return !$this->isGame();
+    return Services::buildId($this->appId());
   }
 
   /**
    * Return array of data of the content package.
    *
-   * @todo: Test scenario with multiple content packages.
+   * @todo: Multiple content packages?
    *
-   * @param string|NULL $name - Content package name. Leave blank to get all.
-   *
-   * @return BaroEntity|array|NULL
+   * @return BaroEntity|NULL
    */
-  public function contentPackage(string $name = NULL): BaroEntity|array|NULL {
+  public function contentPackage(): BaroEntity|NULL {
     $contentPackages = $this->createParser()->doParse();
-    if (isset($name)) {
-      $contentPackages = $contentPackages[$name] ?? NULL;
-    }
-    return $contentPackages;
+    return !empty($contentPackages) ? reset($contentPackages) : NULL;
   }
 
   /**
    * Return array of data with items.
    *
-   * @todo: Refactor when method isItem is refactored.
+   * @todo: Refactor.
    *
    * @return array
    */
   public function items(): array {
-    $contentPackage = $this->contentPackage('Vanilla');
+    $contentPackage = $this->contentPackage();
     $assets = $contentPackage->childrenByTypes('Item');
-    $mappingEntities = $this->services()->mappingEntities();
+//    $mappingEntities = Services::$mappingEntities->array();
     $items = [];
     foreach ($assets as $asset) {
+      // Skip broken assets.
+      if (!$asset->hasAttribute('file')) {
+        continue;
+      }
+      // Parse items.
       $file = $asset->attribute('file');
       $parser = $this->createParser($file);
       $parser->doParse();
@@ -162,9 +133,9 @@ class Scanner {
 //      }
     }
     // This item should never be a part of this mapping.
-    $mappingEntities->delete('Items');
+//    $mappingEntities->delete('Items');
     // Save to YAML.
-    $mappingEntities->save();
+//    $mappingEntities->save();
     // Return parsed items.
     return $items;
   }
@@ -178,61 +149,21 @@ class Scanner {
    * "Content/ContentPackages/Vanilla.xml" to parse game content package.
    *
    * @return ParserInterface
-   *  At current moment we have only one parser.
    */
   public function createParser(string $file = NULL): ParserInterface {
+    // Default file path.
+    if (!isset($file)) {
+      $file = Services::gameLikePathToContentPackage($this->application);
+    }
     // Check for existing parser.
     if (isset($this->parsers[$file])) {
       return $this->parsers[$file];
     }
 
-    // Default file path.
-    if (!isset($file)) {
-      $file = $this->gameLikePathToContentPackage();
-    }
-    // Create container for additional data and Drupal services.
-    $services = $this->services();
-    $path = $services->pathPrepare($file);
-
-    // Ensure that file path is reachable.
-    if (!file_exists($path)) {
-      $appId = $this->appId();
-      $buildId = $this->buildId();
-      $msg = "Unable to locate file '$file' of the app: $appId (build id: $buildId)";
-      Core::error($msg);
-    }
-
     // Create parser and store it in cache.
-    /** @var ParserInterface $parser - At current moment we have only classic parser. */
-    $parser = new $this->parserClass($file, $services);
+    $parser = new $this->parserClass($file, $this->application);
     $this->parsers[$file] = $parser;
     return $parser;
-  }
-
-  /**
-   * Returns game-like path to content package file.
-   *
-   * @return null|string
-   */
-  public function gameLikePathToContentPackage(): null|string {
-    $package = $this->primaryContentPackage();
-    if ($this->isGame()) {
-      $filePath = "Content/ContentPackages/$package.xml";
-    }
-    else {
-      // Path to content package of the mod.
-      $filePath = "$package.xml";
-    }
-    return $filePath;
-  }
-
-  /**
-   * Returns name of primary content package of this app.
-   *
-   * @return string
-   */
-  protected function primaryContentPackage(): string {
-    return $this->isGame() ? 'Vanilla' : 'filelist';
   }
 
 }

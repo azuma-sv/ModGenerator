@@ -4,14 +4,12 @@
  * Core service class definition.
  */
 
-namespace Barotraumix\Generator;
+namespace Barotraumix\Framework;
 
-use Barotraumix\Generator\Compiler\CompilerClassic;
-use Barotraumix\Generator\Compiler\CompilerInterface;
-use Barotraumix\Generator\Services\Database;
-use Barotraumix\Generator\Services\Framework;
-use Barotraumix\Generator\Services\Services;
-use Barotraumix\Generator\Services\Settings;
+use Barotraumix\Framework\Compiler\CompilerInterface;
+use Barotraumix\Framework\Services\Framework;
+use Barotraumix\Framework\Services\Services;
+use Barotraumix\Framework\Services\Settings;
 
 /**
  * Class definition.
@@ -34,19 +32,9 @@ class Core {
   public static Services $services;
 
   /**
-   * @var array Array with scanners.
+   * @var string $compilerClass - Compiler class to use for this framework.
    */
-  protected array $scanners;
-
-  /**
-   * Mod builder service.
-   */
-  protected CompilerInterface $builder;
-
-  /**
-   * Storages for different mods.
-   */
-  protected Database $bank;
+  protected string $compilerClass;
 
   /**
    * Static way to create this service.
@@ -59,6 +47,16 @@ class Core {
     static::$get = new Core();
     static::$services = new Services();
     return static::$get;
+  }
+
+  /**
+   * Class constructor.
+   */
+  public function __construct() {
+    // Assign parser class. At current moment we have only one.
+    // New Parser might appear when Barotrauma will make significant
+    // changes in their files and their structure.
+    $this->compilerClass = '\Barotraumix\Framework\Compiler\CompilerClassic';
   }
 
   /**
@@ -91,12 +89,12 @@ class Core {
       exit();
     }
     // Try to find folder.
-    $modPath = $this->pathInput($mod);
+    $modPath = Framework::pathInput($mod);
     if (!file_exists($modPath)) {
       Framework::error('Unable to find mod folder.');
     }
     // Try to find mod main file.
-    $localModFile = 'filelist.mod.yml';
+    $localModFile = Framework::PRIMARY_MOD_FILE;
     $modFile = $modPath . '/' . $localModFile;
     if (!file_exists($modFile)) {
       Framework::error('Unable to find mod main file.');
@@ -104,40 +102,44 @@ class Core {
     // Keep mod data.
     $modData = [];
     $fileSettings = new Settings($modFile);
-    $modData[$modFile] = $fileSettings->settings();
+    $modData[$modFile] = $fileSettings->array();
+    // @todo: Create ability to include files in specific order.
     foreach (scandir($modPath) as $file) {
       // Scan only YAML files.
       if ($file != $localModFile && str_ends_with($file, '.yml')) {
         $fileSettings = new Settings($modPath . '/' . $file);
-        $modData[$modPath . '/' . $file] = $fileSettings->settings();
+        $modData[$modPath . '/' . $file] = $fileSettings->array();
       }
     }
-    $this->bank()->modData($modData);
+    Services::$database->modSources($modData);
   }
 
   /**
    * Method to update the game and obtain build ID for mod generator.
    *
+   * @todo: Refactor to use buildId properly.
+   *
    * @return void
    */
   public function steamUpdateGameAndMods(): void {
     // Check each application.
-    $apps = $this->bank()->applicationsOrder();
-    foreach ($apps as $app => $ids) {
-      $buildId = NULL;
-      // Try to get build ID from settings.
-      if (!empty($ids['buildId'])) {
-        $buildId = $ids['buildId'];
+    $apps = Services::$database->applications();
+    foreach ($apps as $app => $id) {
+      // Try to get build ID from temporary storage.
+      $buildId = Services::buildId($id);
+      // @todo: Remove once integration with mods is implemented.
+      if ($app != Framework::BAROTRAUMA_APP_NAME) {
+        continue;
       }
-
       // Force update.
       if (in_array('--force-update', $GLOBALS['argv']) || !isset($buildId)) {
-        $buildId = $this->steam->appInstall($ids['appId']);
+        $buildId = Services::$steam->appInstall($id);
         // Save build ID value.
         if (!empty($buildId)) {
           // Update barotrauma build id.
-          $this->settings->set(['applications', $app, 'buildId'], $buildId);
-          $this->settings->save();
+
+          Framework::$settings->set(['applications', $app, 'buildId'], $buildId);
+          Framework::$settings->save();
         }
         else {
           Framework::error('Unable to update app: ' . $app);
@@ -153,14 +155,14 @@ class Core {
    */
   public function importSourcesToDatabase(): void {
     // Scanner will automatically send all the data to bank.
-    $apps = $this->bank()->applicationsOrder();
-    foreach ($apps as $app => $ids) {
+    $apps = Services::$database->applications();
+    foreach ($apps as $app => $id) {
       // @todo: Remove once mods are integrated.
-      if ($app !== Core::BAROTRAUMA_APP_NAME) {
+      if ($app !== Framework::BAROTRAUMA_APP_NAME) {
         continue;
       }
       // Initialize generator.
-      $scanner = $this->scan($ids['appId'], $ids['buildId']);
+      $scanner = $this->scan($app);
       // Scan only items at the moment.
       $scanner->items();
     }
@@ -172,41 +174,41 @@ class Core {
    * @return void
    */
   public function compile(): void {
-    $this->builder()->doBuild();
+    $this->compiler()->doCompile();
   }
 
   /**
-   * Method to mod builder service.
+   * Method to get mod compiler service.
    *
    * @return CompilerInterface
    */
-  public function builder():CompilerInterface {
+  public function compiler(): CompilerInterface {
+    static $compiler;
     // Create builder service.
-    if (!isset($this->builder)) {
-      $this->builder = new CompilerClassic($this->pathOutput(), $this->bank());
+    if (!isset($compiler)) {
+      $compiler = new $this->compilerClass();
     }
-    return $this->builder;
+    return $compiler;
   }
 
   /**
    * Get scanner object which will allow us to scan folder of specific app by
    * build id.
    *
-   * @param int $appId - ID of the app in Steam.
-   * @param int $buildId - Build id of the app in Steam.
+   * @param string $application - Application name to scan.
    *
    * @return Scanner
    */
-  public function scan(int $appId, int $buildId): Scanner {
+  public function scan(string $application = Framework::BAROTRAUMA_APP_NAME): Scanner {
     // Use static cache.
     static $scanners = [];
     // Attempt to get scanner from cache.
-    if (isset($scanners[$appId][$buildId])) {
-      return $scanners[$appId][$buildId];
+    if (isset($scanners[$application])) {
+      return $scanners[$application];
     }
     // Create new scanner.
-    $scanner = new Scanner(new Services($appId, $buildId, $this));
-    $scanners[$appId][$buildId] = $scanner;
+    $scanner = new Scanner($application);
+    $scanners[$application] = $scanner;
     return $scanner;
   }
 

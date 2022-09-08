@@ -5,9 +5,9 @@
  * Trait to handle ID.
  */
 
-namespace Barotraumix\Generator\Entity\Property;
+namespace Barotraumix\Framework\Entity\Property;
 
-use Barotraumix\Generator\Core;
+use Barotraumix\Framework\Services\Framework;
 
 /**
  * Trait definition.
@@ -24,7 +24,7 @@ trait ID {
    *
    * @return string|NULL
    */
-  public function id(): string|NULL {
+  public function getID(): string|NULL {
     return $this->id;
   }
 
@@ -45,7 +45,7 @@ trait ID {
   public function setID(string $id): void {
     // Validate ability to set ID.
     if ($this->hasID()) {
-      Core::error('Once ID was set - it can not be changed.');
+      Framework::error('Once ID was set - it can not be changed.');
     }
     $this->id = $id;
   }

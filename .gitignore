@@ -1,4 +1,8 @@
+# @todo: Think on how this may be related with environment variables.
 .idea/*
 vendor/*
 barotrauma/*
 LocalMods/*
+
+# Storage for temporary settings.
+src/temp.yml

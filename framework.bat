@@ -1,1 +1,1 @@
-docker exec -it modgenerator_appserver_1 php generator.php --mod=GatherResourcesQuickly
+docker exec -it barotraumamoddingframework_appserver_1 php framework.php --mod=GatherResourcesQuickly

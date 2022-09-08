@@ -8,9 +8,9 @@
  *   downloads/updates.
  */
 
-namespace Barotraumix\Generator\Services;
+namespace Barotraumix\Framework\Services;
 
-use Barotraumix\Generator\Core;
+use Barotraumix\Framework\Core;
 
 /**
  * Class SteamCMD.

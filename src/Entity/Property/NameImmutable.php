@@ -5,9 +5,9 @@
  * Trait to handle name which can't be changed.
  */
 
-namespace Barotraumix\Generator\Entity\Property;
+namespace Barotraumix\Framework\Entity\Property;
 
-use Barotraumix\Generator\Core;
+use Barotraumix\Framework\Services\Framework;
 
 /**
  * Trait definition.
@@ -26,7 +26,7 @@ trait NameImmutable {
    */
   public function setName(string $name): void {
     if (isset($this->name)) {
-      Core::error($this->setNameErrorMessage());
+      Framework::error($this->setNameErrorMessage());
     }
     $this->name = $name;
   }

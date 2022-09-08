@@ -2,12 +2,10 @@
 
 /**
  * @file
- * Interface for Barotrauma parser object.
- *
- * @todo: Implement and use parser interface.
+ * Interface for Barotrauma compiler service.
  */
 
-namespace Barotraumix\Generator\Compiler;
+namespace Barotraumix\Framework\Compiler;
 
 /**
  * Interface ParserInterface.
@@ -15,15 +13,10 @@ namespace Barotraumix\Generator\Compiler;
 interface CompilerInterface {
 
   /**
-   * @const string - Contains a string to reference name of the mod which we are generating.
-   */
-  const CONTEXT_SELF = 'SELF';
-
-  /**
    * Get all data from parser (file).
    *
    * @return bool
    */
-  public function doBuild():bool;
+  public function doCompile(): bool;
 
 }

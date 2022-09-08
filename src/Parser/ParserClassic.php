@@ -10,14 +10,11 @@
  *   (Summer 2022).
  */
 
-namespace Barotraumix\Generator\Parser;
+namespace Barotraumix\Framework\Parser;
 
-use Barotraumix\Generator\Core;
-use Barotraumix\Generator\Entity\BaroEntity;
-use Barotraumix\Generator\Entity\Property\NameImmutable;
-use Barotraumix\Generator\Entity\Property\Value;
-use Barotraumix\Generator\Services\Services;
-use Barotraumix\Generator\Services\ServicesHolder;
+use Barotraumix\Framework\Services\Framework;
+use Barotraumix\Framework\Services\Services;
+use Barotraumix\Framework\Entity\BaroEntity;
 use SimpleXMLElement;
 
 /**
@@ -26,26 +23,22 @@ use SimpleXMLElement;
 class ParserClassic implements ParserInterface {
 
   /**
-   * Extra utilities.
-   */
-  use ServicesHolder;
-  use Value;
-
-  /**
    * @var SimpleXMLElement $xmlParser - XML Parser object.
    */
   protected SimpleXMLElement $xmlParser;
 
   /**
-   * @var string $file - Game-like path to the file which we are trying to
-   *   parse.
+   * @var string $file - Game-like path to the file which we are trying to parse.
    */
   protected string $file;
 
   /**
-   * Parsed data.
-   *
-   * @var array
+   * @var string $application - Application name which is getting parsed.
+   */
+  protected string $application;
+
+  /**
+   * @var array - Parsed data.
    */
   protected array $data;
 
@@ -54,19 +47,18 @@ class ParserClassic implements ParserInterface {
    *
    * @param string $file
    *  Game-like path to file which we are going to parse.
-   * @param Services $services
-   *  Extra services for parsing game data.
+   * @param string $application - Application name which is getting parsed.
+   *  Application name is used as context name for parsed entities in database.
    */
-  public function __construct(string $file, Services $services) {
+  public function __construct(string $file, string $application = Framework::BAROTRAUMA_APP_NAME) {
     // Init variables.
     $this->file = $file;
-    $this->setServices($services);
-
+    $this->application = $application;
     // Prepare parser.
-    $path = $services->pathPrepare($file);
+    $path = Framework::getPath($file, $application);
     $content = file_get_contents($path);
     if ($content === FALSE) {
-      Core::error("Unable to read content of the file: $file");
+      Framework::error("Unable to read content of the file: $file");
     }
     $this->xmlParser = new SimpleXMLElement($content);
   }
@@ -89,14 +81,15 @@ class ParserClassic implements ParserInterface {
         $data = [$data];
       }
       // Process entities.
+      // @todo: Do I need this processing here?
       // @todo: Test the case when <Items> is inside of <Override>.
       foreach ($data as $datum) {
         if ($datum instanceof BaroEntity) {
-          $this->services()->processTree($datum);
+          $this->processTree($datum);
           $this->data[$datum->id()] = $datum;
         }
         else {
-          Core::error('Unexpected data retrieved. This case needs to be reported.');
+          Framework::error('Unexpected data retrieved. This case needs to be reported.');
         }
       }
     }
@@ -115,15 +108,17 @@ class ParserClassic implements ParserInterface {
    * @return BaroEntity|array|string
    */
   protected function parseNode(SimpleXMLElement $XMLElement, BaroEntity $parent = NULL): BaroEntity|array|string {
+    $app = $this->application;
+    $file = $this->file;
     // Process name and attributes.
-    $name = $this->normalizeTagName($XMLElement->getName());
+    $name = Services::normalizeTagName($XMLElement->getName());
     // Prepare attributes.
     $attributes = (array) $XMLElement->attributes();
     $attributes = !empty($attributes['@attributes']) ? $attributes['@attributes'] : [];
     // Attempt to create an entity.
     $type = $this->getEntityType($name);
     if (!isset($parent) && isset($type)) {
-      $node = new BaroEntity($name, $attributes, $type);
+      $node = new BaroEntity($name, $attributes, $app, $file);
     }
     // Create sub-element instead.
     else {
@@ -132,10 +127,10 @@ class ParserClassic implements ParserInterface {
       if (!in_array($name, $this->entitiesToIgnore())) {
         // Validate unrecognized entity types.
         if (!isset($parent)) {
-          Core::error("Unrecognized entity type for tag: '$name' in file: '$this->file'");
+          Framework::error("Unrecognized entity type for tag: '$name' in file: '$file'");
         }
         // Create sub-element.
-        $node = new BaroEntity($name, $attributes, $parent);
+        $node = new BaroEntity($name, $attributes, $app, $file, $parent);
       }
     }
     // Process children.
@@ -149,7 +144,7 @@ class ParserClassic implements ParserInterface {
         if (isset($node)) {
           // Validate for error.
           if (is_array($child)) {
-            Core::error('Child entity has been ignored unexpectedly. This case needs to be reported.');
+            Framework::error('Child entity has been ignored unexpectedly. This case needs to be reported.');
             continue;
           }
           if ($child instanceof BaroEntity) {
@@ -166,29 +161,20 @@ class ParserClassic implements ParserInterface {
         }
       }
     }
-    // Avoid unnecessary arrays.
-    if (!isset($node) && count($children) == 1) {
-      // @todo: Test the case when <Items> is inside of <Override>.
-      $children = reset($children);
+    // Lock parsed entities.
+    if (isset($node)) {
+      if ($node->isRoot()) {
+        $node->lock();
+      }
+    }
+    else {
+      // Avoid unnecessary arrays.
+      if (count($children) == 1) {
+        // @todo: Test the case when <Items> is inside of <Override>.
+        $children = reset($children);
+      }
     }
     return $node ?? $children;
-  }
-
-  /**
-   * Method to normalize tag name.
-   *
-   * @param string $name - XML tag name.
-   *
-   * @return string
-   */
-  protected function normalizeTagName(string $name): string {
-    // Look for appropriate name in mapping.
-    if ($this->services()->mappingTags()->has($name)) {
-      // @todo: Refactor settings file.
-      $name = $this->services()->mappingTags()->get($name);
-    }
-    // Return normalized value.
-    return strval($name);
   }
 
   /**
@@ -199,7 +185,7 @@ class ParserClassic implements ParserInterface {
    * @return string|NULL
    */
   protected function getEntityType(string $name): string|NULL {
-    $mappingEntities = $this->services()->mappingEntities()->array();
+    $mappingEntities = Services::$mappingEntities->array();
     return $mappingEntities[$name] ?? NULL;
   }
 
@@ -215,7 +201,7 @@ class ParserClassic implements ParserInterface {
   protected function entitiesToIgnore(): array {
     static $entities;
     if (!isset($entities)) {
-      $mappingEntities = $this->services()->mappingEntities()->array();
+      $mappingEntities = Services::$mappingEntities->array();
       $mappingEntities = array_unique(array_values($mappingEntities));
       // Prepare list of wrappers to ignore.
       foreach ($mappingEntities as $mappingEntity) {
@@ -226,6 +212,24 @@ class ParserClassic implements ParserInterface {
       $entities[] = 'Override';
     }
     return $entities;
+  }
+
+  /**
+   * Method to process tree of parsed objects.
+   *
+   * @param BaroEntity $entity - Parsed entity.
+   *
+   * @return void
+   */
+  protected function processTree(BaroEntity $entity):void {
+    // Process children recursively.
+    if ($entity->hasChildren()) {
+      foreach ($entity->children() as $child) {
+        $this->processTree($child);
+      }
+    }
+    // Add entity to bank.
+    Services::$database->entityAdd($entity, $this->application);
   }
 
 }

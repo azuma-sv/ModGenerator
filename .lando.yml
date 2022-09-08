@@ -1,4 +1,5 @@
-name: ModGenerator
+# @todo: Rename to - Barotrauma Modding Framework.
+name: BarotraumaModdingFramework
 recipe: symfony
 config:
   webroot: web
@@ -8,6 +9,12 @@ services:
     type: php:8.1
     overrides:
       # Image with Lando PHP 8.1 and SteamCMD.
+      # @todo: Create completely custom image with minimal amount of things in it.
       image: azumasv/barotraumix:lando-php-8.1
       environment:
-        BAROTRAUMA_SOURCE_FILES: "sites/default/barotrauma"
+        BASE_PATH: /app
+        PATH_GAME: Barotrauma
+        # @todo: Connect framework with workshop somehow.
+        PATH_WORKSHOP: '@todo: Implement...'
+        PATH_INPUT: ModSources
+        PATH_OUTPUT: LocalMods

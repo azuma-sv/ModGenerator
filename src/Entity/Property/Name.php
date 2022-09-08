@@ -5,7 +5,7 @@
  * Trait to handle name.
  */
 
-namespace Barotraumix\Generator\Entity\Property;
+namespace Barotraumix\Framework\Entity\Property;
 
 /**
  * Trait definition.
@@ -45,6 +45,10 @@ trait Name {
    * @param string $name - Object name.
    */
   public function setName(string $name): void {
+    // Break lock if exists.
+    if ($this->isLocked()) {
+      $this->breakLock();
+    }
     $this->name = $name;
   }
 

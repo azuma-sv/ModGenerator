@@ -5,10 +5,10 @@
  * Trait to handle children.
  */
 
-namespace Barotraumix\Generator\Entity\Property;
+namespace Barotraumix\Framework\Entity\Property;
 
-use Barotraumix\Generator\Entity\BaroEntity;
-use Barotraumix\Generator\Core;
+use Barotraumix\Framework\Entity\BaroEntity;
+use Barotraumix\Framework\Services\Framework;
 
 /**
  * Trait definition.
@@ -59,9 +59,23 @@ trait Children {
    * @return void
    */
   public function unsetChildren(string|int $order = NULL, string $group = NULL): void {
-    // @todo: Implement.
-    unset($order, $group);
-    $this->children = [];
+    // Break lock if exists.
+    if ($this->isLocked()) {
+      $this->breakLock();
+    }
+    // If group exists.
+    if (isset($order) && isset($group)) {
+      $children = $this->childrenByTypes($group);
+      $keys = array_keys($children);
+      $order = $keys[$order] ?? NULL;
+    }
+    // Unset proper child.
+    if (isset($order)) {
+      unset($this->children[$order]);
+    }
+    else {
+      $this->children = [];
+    }
   }
 
   /**
@@ -73,10 +87,14 @@ trait Children {
    * @param string $group - Group of elements which impacts order.
    */
   public function addChild(BaroEntity $entity, string|int $order = 0, string $group = ''):void {
+    // Break lock if exists.
+    if ($this->isLocked()) {
+      $this->breakLock();
+    }
     // @todo: Implement.
     unset($order, $group);
     if (!$this->addChildValidate($entity)) {
-      Core::error($this->addChildErrorMessage());
+      Framework::error($this->addChildErrorMessage());
     }
     $this->children[] = $entity;
   }
@@ -108,9 +126,9 @@ trait Children {
     }
     // Collect children.
     $children = [];
-    foreach ($this->children() as $child) {
+    foreach ($this->children() as $index => $child) {
       if (in_array($child->type(), $types)) {
-        $children[] = $child;
+        $children[$index] = $child;
       }
     }
     return $children;

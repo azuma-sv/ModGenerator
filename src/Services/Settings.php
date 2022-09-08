@@ -4,9 +4,9 @@
  * Class to handle settings stored in YAML files.
  */
 
-namespace Barotraumix\Generator\Services;
+namespace Barotraumix\Framework\Services;
 
-use Barotraumix\Generator\Entity\Property\NestedArray;
+use Barotraumix\Framework\Entity\Property\NestedArray;
 use Symfony\Component\Yaml\Yaml;
 
 /**
@@ -38,7 +38,19 @@ class Settings {
   public function __construct(string $file, mixed $sort = NULL) {
     // @todo: Refactor sorting behavior.
     $this->sort = $sort;
-    $this->file = BASE_PATH . '/' . $file;
+    // Check if we should add base path.
+    // @todo: Look for better solution.
+    if (mb_substr($file, 0, 1) != '/') {
+      $this->file = BASE_PATH . '/' . $file;
+    }
+    else {
+      $this->file = $file;
+    }
+    // Create temp file if it doesn't exist.
+    if ($file == 'src/temp.yml' && !file_exists($this->file)) {
+      // @todo: Look for better solution.
+      file_put_contents(BASE_PATH . '/' . $file, '');
+    }
     $data = Yaml::parseFile($this->file);
     $this->settings = is_array($data) ? $data : [];
   }

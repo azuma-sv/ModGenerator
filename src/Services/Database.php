@@ -5,12 +5,10 @@
  * Class to store all objects used in process of mod generation.
  */
 
-namespace Barotraumix\Generator\Services;
+namespace Barotraumix\Framework\Services;
 
-use Barotraumix\Generator\Compiler\CompilerInterface;
-use Barotraumix\Generator\Core;
-use Barotraumix\Generator\Entity\BaroEntity;
-use Barotraumix\Generator\Entity\Property\NestedArray;
+use Barotraumix\Framework\Entity\Property\NestedArray;
+use Barotraumix\Framework\Entity\BaroEntity;
 
 /**
  * Class definition.
@@ -18,40 +16,39 @@ use Barotraumix\Generator\Entity\Property\NestedArray;
 class Database {
 
   /**
-   * @var Core - Core service.
-   */
-  protected Core $core;
-
-  /**
    * @var array - Object storage.
    */
   protected array $storage = [
-    'contexts' => [],
+    'contexts' => [
+      Framework::CONTEXT => ['entities' => []],
+      Framework::BAROTRAUMA_APP_NAME => ['entities' => []],
+    ],
     'variables' => [
       'global' => [],
-      CompilerInterface::CONTEXT_SELF => [],
+      Framework::CONTEXT => [],
     ],
   ];
 
   /**
-   * Method to store mod data.
+   * Method to store mod source data.
    *
    * @param array|NULL $modData - Data of parsed mod source.
    *
    * @return array
    */
-  public function modData(array $modData = NULL): array {
+  public function modSources(array $modData = NULL): array {
     static $data = [];
     if (isset($modData)) {
       // Process mod's order.
       reset($modData);
       $primary = key($modData);
-      if (empty($modData[$primary]['order'])) {
-        $modData[$primary]['order'] = [];
+      if (empty($modData[$primary][Key::MODS])) {
+        $modData[$primary][Key::MODS] = [];
       }
-      // Force game to be in the beginning of the file.
-      $modData[$primary]['order'] = array_unique($modData[$primary]['order'] + [Core::BAROTRAUMA_APP_NAME => Core::BAROTRAUMA_APP_NAME]);
-
+      $order = &$modData[$primary][Key::MODS];
+      // Force game to be in the end of the file.
+      $app = [Framework::BAROTRAUMA_APP_NAME => Framework::BAROTRAUMA_APP_ID];
+      $order = array_unique($order + $app);
       // Set data.
       $data = $modData;
     }
@@ -61,24 +58,27 @@ class Database {
   /**
    * Method to get applications order (and a list).
    *
-   * @return array
+   * @param string|bool|null $filter - May be a string, TRUE or NULL.
+   * NULL - Return all applications in order used for database import phase.
+   * string - Single application name to return it ID.
+   * TRUE - Indicates if we should include active context.
+   * Active context - is a context of the mod which we are generating.
+   *
+   * @return array|int|NULL
    */
-  public function applicationsOrder(): array {
-    // Prepare order array.
-    $order = [];
-    $data = $this->modData();
+  public function applications(string|bool $filter = NULL): array|int|NULL {
+    $data = $this->modSources();
     $primary = reset($data);
-    foreach ($primary['order'] as $app) {
-      $ids = $this->core->settings()->get(['applications', $app]);
-      if (empty($ids['appId'])) {
-        Core::error('Unable to find application ID for app: "' . $app . '". Check key "applications" in settings.yml file.');
-      }
-      $order[$app] = $ids;
+    // Return single value if necessary.
+    if (is_string($filter)) {
+      return $primary[Key::MODS][$filter] ?? NULL;
     }
-    if (empty($order)) {
-      Core::error('No applications to process. Check key "applications" in settings.yml file.');
+    // Return with active context.
+    if ($filter === TRUE) {
+      return [Framework::CONTEXT => Framework::CONTEXT] + $primary[Key::MODS];
     }
-    return $order;
+    // Return normal list otherwise.
+    return array_reverse($primary[Key::MODS], TRUE);
   }
 
   /**
@@ -89,7 +89,7 @@ class Database {
    *
    * @return void
    */
-  public function addEntity(BaroEntity $entity, string $context): void {
+  public function entityAdd(BaroEntity $entity, string $context): void {
     // Create context storage.
     if (!isset($this->storage['contexts'][$context])) {
       $this->storage['contexts'][$context] = [];
@@ -100,7 +100,7 @@ class Database {
       // Notify user about this action.
       if (isset($context['entities'][$entity->id()])) {
         $entityOld = $context['entities'][$entity->id()];
-        Core::notice('Entity of type "' . $entityOld->type() . '" with ID "' . $entityOld->id() . '" has been replaced by entity of type "' . $entity->type() . '" with ID "' . $entity->id() . '"');
+        Framework::notice('Entity of type "' . $entityOld->type() . '" with ID "' . $entityOld->id() . '" has been replaced by entity of type "' . $entity->type() . '" with ID "' . $entity->id() . '"');
       }
       // Set new entity.
       $context['entities'][$entity->id()] = $entity;
@@ -159,6 +159,64 @@ class Database {
   }
 
   /**
+   * Removes entity from database for specific context.
+   *
+   * @param BaroEntity|array $entities - Entities to remove (or single one).
+   * @param array|string $scope - Array of contexts, single string with context
+   * name, array of BaroEntities or NULL to use active context.
+   *
+   * @return void
+   */
+  public function entitiesRemove(BaroEntity|array $entities, array|string &$scope = Framework::CONTEXT): void {
+    // Prepare entities.
+    if ($entities instanceof BaroEntity) {
+      $entities = [$entities];
+    }
+    // Mark entities for removal.
+    foreach ($entities as $entity) {
+      $entity->remove();
+    }
+    // In case if it is an array of entities.
+    if (is_array($scope) && reset($scope) instanceof BaroEntity) {
+      /** @var BaroEntity $entity */
+      foreach ($scope as $index => $entity) {
+        if ($entity->isRemoved()) {
+          unset($scope[$index]);
+        }
+      }
+      // Don't need to do anything else.
+      return ;
+    }
+    // Define context.
+    $contexts = $scope;
+    if (!isset($contexts)) {
+      $contexts = array_keys($this->applications(TRUE));
+    }
+    // Context - always an array.
+    if (is_scalar($contexts)) {
+      $contexts = [$contexts];
+    }
+    // Remove from contexts.
+    foreach ($contexts as $context) {
+      // Get context storage.
+      if (
+        empty($this->storage['contexts'][$context]) ||
+        empty($this->storage['contexts'][$context]['entities'])
+      ) {
+        continue;
+      }
+      $storage = &$this->storage['contexts'][$context]['entities'];
+      // Remove each entity.
+      foreach ($entities as $entity) {
+        // We should remove only root entities from context.
+        if ($entity->isRoot()) {
+          unset($storage[$entity->id()]);
+        }
+      }
+    }
+  }
+
+  /**
    * Method to add single variable to global or local scope.
    *
    * @param string|array $keys - Array of keys as path to variable (or string).
@@ -172,7 +230,7 @@ class Database {
     if (is_scalar($keys)) {
       $keys = [$keys];
     }
-    $key = $isGlobal ? 'global' : CompilerInterface::CONTEXT_SELF;
+    $key = $isGlobal ? 'global' : Framework::CONTEXT;
     NestedArray::setValue($this->storage['variables'][$key], $keys, $variable);
   }
 
@@ -186,7 +244,7 @@ class Database {
    * @return void
    */
   public function addVariables(array|string $variables, bool $isGlobal = FALSE): void {
-    $key = $isGlobal ? 'global' : CompilerInterface::CONTEXT_SELF;
+    $key = $isGlobal ? 'global' : Framework::CONTEXT;
     $source = $this->storage['variables'][$key];
     $destination = NestedArray::mergeDeep($source, $variables);
     $this->storage['variables'][$key] = $destination;
@@ -206,7 +264,7 @@ class Database {
       $keys = [$keys];
     }
     $variables = $this->storage['variables'];
-    $variable = NestedArray::getValue($variables[CompilerInterface::CONTEXT_SELF], $keys, $key_exists);
+    $variable = NestedArray::getValue($variables[Framework::CONTEXT], $keys, $key_exists);
     // Return if key exists.
     if ($key_exists) {
       return $variable;
@@ -240,7 +298,7 @@ class Database {
       if (empty($depth)) {
         if (!isset($context) || is_scalar(reset($context))) {
           // Filter entire context scope for first time.
-          $filtered = $this->entityFilterContext($condition, $context, $clone);
+          $filtered = $this->entityRootFilter($condition, $context, $clone);
         }
         else {
           // Filter listed entities.
@@ -250,7 +308,7 @@ class Database {
           // Store every entity.
           /** @var BaroEntity $entity */
           foreach ($filtered as $entity) {
-            $collection[$depth][$this->getRootID($entity)][] = $entity;
+            $collection[$depth][$entity->id()][] = $entity;
           }
         }
       }
@@ -265,7 +323,7 @@ class Database {
                 // Store every entity.
                 /** @var BaroEntity $entity */
                 foreach ($filtered as $entityFiltered) {
-                  $collection[$depth][$this->getRootID($entity)][] = $entityFiltered;
+                  $collection[$depth][$entity->id()][] = $entityFiltered;
                 }
               }
             }
@@ -290,7 +348,7 @@ class Database {
           // This is a very weird case which needs attention.
           if (count($collection[$depth]) !== count($collection[$step])) {
             // @todo: Remove in future.
-            Core::error('Incorrect query cleaning method. Needs admin attention.');
+            Framework::error('Incorrect query cleaning method. Needs admin attention.');
           }
           // Break cleaning.
           if (empty($step)) {
@@ -344,6 +402,67 @@ class Database {
   }
 
   /**
+   * Filter function which is applied only for root entities.
+   *
+   * Has an ability to clone entities to active context.
+   * Can't filter by an array of entities.
+   *
+   * @param array $condition - Condition array.
+   * @param array|string|NULL $contexts - Array with context scope, or name of
+   *   the context, or NULL to use EVERYTHING.
+   * @param bool $clone - Indicates if we should clone entity to our new
+   *   context.
+   *
+   * @return array
+   */
+  public function entityRootFilter(array $condition, array|string $contexts = NULL, bool $clone = FALSE): array {
+    $entities = [];
+    // Provide contexts list by default.
+    if (!isset($contexts)) {
+      $contexts = array_keys($this->applications(TRUE));
+    }
+    // Always an array.
+    if (is_scalar($contexts)) {
+      $contexts = [$contexts];
+    }
+    // Prepare storage for new entities.
+    $storage = &$this->storage['contexts'];
+    $storageSelf = &$storage[Framework::CONTEXT]['entities'];
+    foreach ($contexts as $context) {
+      // Nothing to search.
+      if (empty($storage[$context]) || empty($storage[$context]['entities'])) {
+        continue;
+      }
+      // Filter each entity.
+      $filtered = $this->entityFilter($storage[$context]['entities'], $condition);
+      if (empty($filtered)) {
+        continue;
+      }
+      /** @var BaroEntity $entity */
+      foreach ($filtered as $entity) {
+        // Clone entity if needed.
+        $filteredEntity = $entity;
+        if ($clone && $context != Framework::CONTEXT && empty($storageSelf[$entity->id()])) {
+          // Validate if entity has been replaced.
+          if (isset($storageSelf[$entity->id()])) {
+            $entityOld = $storageSelf[$entity->id()];
+            $msg = 'Entity of type "' . $entityOld->type() . '" with ID "' . $entityOld->id() . '" has been replaced by entity of type "';
+            $msg .= $entity->type() . '" with ID "' . $entity->id() . '" (in a context: "' . Framework::CONTEXT . '")';
+            Framework::notice($msg);
+          }
+          // Clone entity and put it into storage.
+          $filteredEntity = $entity->clone();
+          $storageSelf[$entity->id()] = $filteredEntity;
+        }
+        if (empty($entities[$entity->id()])) {
+          $entities[$entity->id()] = $filteredEntity;
+        }
+      }
+    }
+    return $entities;
+  }
+
+  /**
    * Filter list of entities by a specific condition.
    *
    * @param array $list - Array of entities.
@@ -392,69 +511,6 @@ class Database {
   }
 
   /**
-   * Filter list of entities by a specific condition.
-   *
-   * @param array $condition - Condition array.
-   * @param array|string|NULL $contexts - Array with context scope, or name of
-   *   the context, or NULL to use EVERYTHING.
-   * @param bool $clone - Indicates if we should clone entity to our new
-   *   context.
-   *
-   * @return array
-   */
-  public function entityFilterContext(array $condition, array|string $contexts = NULL, bool $clone = FALSE): array {
-    $entities = [];
-    // Provide contexts list by default.
-    if (!isset($contexts)) {
-      // We need to use context in opposite order.
-      $contexts = array_keys([CompilerInterface::CONTEXT_SELF => CompilerInterface::CONTEXT_SELF] + $this->applicationsOrder());
-    }
-    // Always an array.
-    if (is_scalar($contexts)) {
-      $contexts = [$contexts];
-    }
-    // Prepare storage for new entities.
-    $storage = &$this->storage['contexts'];
-    if (empty($storage[CompilerInterface::CONTEXT_SELF])) {
-      $storage[CompilerInterface::CONTEXT_SELF] = [];
-    }
-    if (empty($storage[CompilerInterface::CONTEXT_SELF]['entities'])) {
-      $storage[CompilerInterface::CONTEXT_SELF]['entities'] = [];
-    }
-    $storageSelf = &$storage[CompilerInterface::CONTEXT_SELF]['entities'];
-    foreach ($contexts as $context) {
-      // Nothing to search.
-      if (empty($storage[$context]) || empty($storage[$context]['entities'])) {
-        continue;
-      }
-      // Filter each entity.
-      $filtered = $this->entityFilter($storage[$context]['entities'], $condition);
-      if (empty($filtered)) {
-        continue;
-      }
-      /** @var BaroEntity $entity */
-      foreach ($filtered as $entity) {
-        // Clone entity if needed.
-        $filteredEntity = $entity;
-        if ($clone && $context != CompilerInterface::CONTEXT_SELF) {
-          // Validate if entity has been replaced.
-          if (isset($storageSelf[$entity->id()])) {
-            $entityOld = $storageSelf[$entity->id()];
-            $msg = 'Entity of type "' . $entityOld->type() . '" with ID "' . $entityOld->id() . '" has been replaced by entity of type "';
-            $msg .= $entity->type() . '" with ID "' . $entity->id() . '" (in a context: "' . CompilerInterface::CONTEXT_SELF . '")';
-            Core::notice($msg);
-          }
-          // Clone entity and put it into storage.
-          $filteredEntity = $entity->clone();
-          $storageSelf[$entity->id()] = $filteredEntity;
-        }
-        $entities[$entity->id()] = $filteredEntity;
-      }
-    }
-    return $entities;
-  }
-
-  /**
    * Verify if given entity matches to provided conditions.
    *
    * @param BaroEntity $entity - Entity to check.
@@ -478,6 +534,7 @@ class Database {
           // Apply condition.
           $check = $check && $condition;
         }
+        continue;
       }
       // Check condition.
       $condition = $this->entityCondition($entity, $or);
@@ -610,13 +667,21 @@ class Database {
   /**
    * Return an array of available entity types.
    *
+   * @todo: Remove?
+   *
    * @return array
    */
   public function entityTypes(): array {
-    $contexts = array_keys($this->applicationsOrder());
+    $contexts = array_keys($this->applications());
     // Check each layer of context.
     $entityTypes = [];
     foreach ($contexts as $context) {
+      // Skip empty context.
+      if (empty($this->storage['contexts'][$context])) {
+        continue;
+      }
+      // Collect entity types.
+      // @todo: Refactor.
       $storage = &$this->storage['contexts'][$context];
       if (!empty($storage['entities'])) {
         $entityTypes = array_merge($entityTypes, array_keys($storage['entities']));
@@ -626,59 +691,19 @@ class Database {
   }
 
   /**
-   * Return an ID of parent entity.
-   *
-   * @todo: Remove.
-   *
-   * @param \Barotraumix\Generator\Entity\BaroEntity $entity
-   *
-   * @return string
-   */
-  protected function getRootID(BaroEntity $entity): string {
-    $current = $entity;
-    while (TRUE) {
-      if ($current->isEntity()) {
-        return $current->id();
-      }
-      $current = $current->parent();
-      if (!$current instanceof BaroEntity) {
-        Core::error('This case needs attention. Unable to find root id.');
-      }
-    }
-  }
-
-  /**
    * Will merge all available contexts into single array.
    *
-   * @param string|array|NULL $contexts - Context name or their list (or
-   *   nothing).
+   * @param string $context - Context name or their list (or nothing).
    *
    * @return array
    */
-  protected function getMergedContext(string|array $contexts = NULL): array {
-    $mergedData = [];
-    // Provide contexts list by default.
-    if (!isset($contexts)) {
-      // We need to use context in opposite order.
-      // @todo: Test if this has a proper order.
-      $contexts = array_keys(array_reverse($this->applicationsOrder(), TRUE));
-    }
-    // Always an array.
-    if (is_scalar($contexts)) {
-      $contexts = [$contexts];
-    }
-    // Check each layer.
+  public function getContext(string $context = Framework::CONTEXT): array {
     $contextStorage = $this->storage['contexts'];
-    foreach ($contexts as $context) {
-      // Nothing to search.
-      if (empty($contextStorage[$context]) || empty($contextStorage[$context]['entities'])) {
-        continue;
-      }
-      $storage = $contextStorage[$context]['entities'];
-      // Merge layers.
-      $mergedData = array_merge($storage, $mergedData);
+    // Nothing to search.
+    if (empty($contextStorage[$context]) || empty($contextStorage[$context]['entities'])) {
+      return [];
     }
-    return $mergedData;
+    return $contextStorage[$context]['entities'];
   }
 
 }

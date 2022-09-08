@@ -5,7 +5,7 @@
  * Trait to handle object value.
  */
 
-namespace Barotraumix\Generator\Entity\Property;
+namespace Barotraumix\Framework\Entity\Property;
 
 /**
  * Trait definition.
@@ -46,6 +46,10 @@ trait Value {
    *  Object value.
    */
   public function setValue(mixed $value):void {
+    // Break lock if exists.
+    if ($this->isLocked()) {
+      $this->breakLock();
+    }
     $this->value = $value;
   }
 

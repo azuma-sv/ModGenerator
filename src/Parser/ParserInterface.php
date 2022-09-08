@@ -7,7 +7,7 @@
  * @todo: Implement and use parser interface.
  */
 
-namespace Barotraumix\Generator\Parser;
+namespace Barotraumix\Framework\Parser;
 
 /**
  * Interface ParserInterface.

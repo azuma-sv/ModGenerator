@@ -5,7 +5,7 @@
  * Trait to handle attributes.
  */
 
-namespace Barotraumix\Generator\Entity\Property;
+namespace Barotraumix\Framework\Entity\Property;
 
 /**
  * Trait definition.
@@ -43,9 +43,20 @@ trait Attributes {
    * Set value for specific attribute.
    *
    * @param string $attribute - Attribute name.
-   * @param string $value - Attribute value.
+   * @param mixed $value - Attribute value.
    */
-  public function setAttribute(string $attribute, string $value): void {
+  public function setAttribute(string $attribute, mixed $value): void {
+    // Break lock if exists.
+    if ($this->isLocked()) {
+      $this->breakLock();
+    }
+    // Prepare value format.
+    $value = match (gettype($value)) {
+      'NULL' => '',
+      'boolean' => $value ? 'true' : 'false',
+      'array' => implode(',', $value),
+      default => $value,
+    };
     $this->attributes[mb_strtolower($attribute)] = $value;
   }
 
@@ -78,6 +89,10 @@ trait Attributes {
    * @param array|NULL $attributes - Array of attribute keys.
    */
   public function unsetAttributes(array $attributes = NULL): void {
+    // Break lock if exists.
+    if ($this->isLocked()) {
+      $this->breakLock();
+    }
     if (!isset($attributes)) {
       // Wipe all attributes.
       $this->attributes = [];

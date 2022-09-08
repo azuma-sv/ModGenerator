@@ -6,10 +6,7 @@
  *   source files.
  */
 
-namespace Barotraumix\Generator\Services;
-
-use Barotraumix\Generator\Core;
-use Barotraumix\Generator\Entity\BaroEntity;
+namespace Barotraumix\Framework\Services;
 
 /**
  * Class definition.
@@ -37,9 +34,14 @@ class Services {
   public static Settings $mappingEntities;
 
   /**
+   * @var Settings - Temporary settings storage.
+   */
+  public static Settings $temp;
+
+  /**
    * Storage for content of this application.
    */
-  public static  Database $database;
+  public static Database $database;
 
   /**
    * Class constructor.
@@ -52,128 +54,109 @@ class Services {
     // Initialize database for objects.
     static::$database = new Database();
     // Process additional settings.
-    static::$mappingTags = new Settings('mapping.tags.yml');
-    static::$mappingEntities = new Settings('mapping.entity.yml');
+    static::$mappingTags = new Settings('src/mapping.tags.yml');
+    static::$mappingEntities = new Settings('src/mapping.entity.yml');
+    static::$temp = new Settings('src/temp.yml');
   }
 
   /**
-   * Method to get framework service object.
+   * Check if current application is Barotrauma game.
    *
-   * @return Core
+   * @param string $application - Application name.
+   *
+   * @return bool
    */
-  public static function framework(): Framework {
-    return static::$framework;
+  public static function isGame(string $application): bool {
+    return Framework::BAROTRAUMA_APP_NAME == $application;
   }
 
   /**
-   * Method to get data storage.
+   * Check if current application is Barotrauma mod.
    *
-   * @return Database
+   * @todo: Maybe remove?
+   *
+   * @param string $application - Application name.
+   *
+   * @return bool
    */
-  public function bank(): Database {
-    return $this->bank;
+  public static function isMod(string $application): bool {
+    return !static::isGame($application);
   }
 
   /**
-   * Method to return raw array with tags mapping.
+   * Method to get/set build id by application id.
    *
-   * @return Settings
+   * @param string|int $appId - Application ID.
+   * @param string|int|NULL $buildId - Build ID to set (optional).
+   *
+   * @return int|NULL
    */
-  public static function mappingTags(): Settings {
-    return static::$mappingTags;
-  }
-
-  /**
-   * Method to return raw array with entities mapping.
-   *
-   * @return Settings
-   */
-  public static function mappingEntities(): Settings {
-    return static::$mappingEntities;
-  }
-
-  /**
-   * Method to process tree of parsed objects.
-   *
-   * @param BaroEntity $entity - Parsed entity.
-   *
-   * @return void
-   */
-  public function processTree(BaroEntity $entity):void {
-    // Additionally process items.
-    if ($entity->isEntity() && $entity->type() == 'Item') {
-      $this->processIdentifier($entity);
+  public static function buildId(string|int $appId, string|int $buildId = NULL): int|NULL {
+    $appId = intval($appId);
+    // Set value.
+    if (isset($buildId)) {
+      static::$temp->set(['applications', $appId], intval($buildId));
+      static::$temp->save();
     }
-    // Process children recursively.
-    if ($entity->hasChildren()) {
-      foreach ($entity->children() as $child) {
-        $this->processTree($child);
+    // Return value.
+    if (static::$temp->has(['applications', $appId])) {
+      return intval(static::$temp->get(['applications', $appId]));
+    }
+    // Return nothing.
+    return NULL;
+  }
+
+  /**
+   * Method to get application ID and build ID by application name.
+   *
+   * @param string $application - Application name.
+   *
+   * @return array
+   */
+  public static function applicationIDs(string $application = Framework::BAROTRAUMA_APP_NAME): array {
+    // Prepare empty result.
+    $ids = ['appId' => NULL, 'buildId' => NULL];
+    // Attempt to get app id.
+    $id = static::$database->applications($application);
+    if (isset($id)) {
+      $ids['appId'] = $id;
+      // Attempt to get build id.
+      $bid = static::buildId($id);
+      if (isset($bid)) {
+        $ids['buildId'] = $bid;
       }
     }
-    // Add entity to bank.
-    $this->bank->addEntity($entity, $this->context);
+    return $ids;
   }
 
   /**
-   * Verifies or creates identifier for entity.
+   * Method to normalize tag name.
    *
-   * At current moment can be used only for items.
-   *
-   * @todo: Identifier should be stored in BaroEntity but not reflected in XML.
-   *
-   * @param BaroEntity $entity
-   *
-   * @return void
-   */
-  protected function processIdentifier(BaroEntity $entity): void {
-    // Init variables.
-    $identifier = NULL;
-    $nameIdentifier = NULL;
-    // Process identifier.
-    if ($entity->hasAttribute('identifier')) {
-      $identifier = $entity->attribute('identifier');
-      $identifier = !empty($identifier) ? $identifier : NULL;
-    }
-    // Success.
-    if (!empty($identifier)) {
-      return ;
-    }
-    // Process name identifier.
-    if ($entity->hasAttribute('nameidentifier')) {
-      $nameIdentifier = $entity->attribute('nameidentifier');
-      $nameIdentifier = !empty($nameIdentifier) ? $nameIdentifier : NULL;
-    }
-    // Success.
-    if (empty($nameIdentifier)) {
-      Core::error('Unable to create identifier.');
-    }
-    // Generate new identifier for the case if I can't determine it in other way.
-    $entity->setAttribute('identifier', $this->identifier($nameIdentifier));
-  }
-
-  /**
-   * Generated identifier based on some string.
-   *
-   * @param string $id - Base string to use to generate identifier.
+   * @param string $name - XML tag name to normalize.
    *
    * @return string
    */
-  protected function identifier(string $id): string {
-    // Static storage with identifiers.
-    static $identifiers;
-    // Validate string.
-    if (empty($id)) {
-      Core::error('String ID can\'t be empty.');
+  public static function normalizeTagName(string $name): string {
+    // Look for appropriate name in mapping.
+    if (static::$mappingTags->has($name)) {
+      // @todo: Refactor settings file.
+      $name = static::$mappingTags->get($name);
     }
-    // Attempt to create one.
-    if (!isset($identifiers[$id])) {
-      $identifiers[$id] = 0;
-    }
-    // Generate new value.
-    $identifiers[$id]++;
-    $identifier = $id . $identifiers[$id];
-    Core::notice('New identifier has been created: ' . $identifier);
-    return $identifier;
+    // Return normalized value.
+    return strval($name);
+  }
+
+  /**
+   * Returns game-like path to content package file.
+   *
+   * @param string $application - Application name.
+   *
+   * @return string
+   */
+  public static function gameLikePathToContentPackage(string $application): string {
+    $isGame = static::isGame($application);
+    $package = $isGame ? 'Vanilla' : 'filelist';
+    return $isGame ? "Content/ContentPackages/$package.xml" : "$package.xml";
   }
 
 }

@@ -5,7 +5,7 @@
  * Class with static methods to provide functions to work with nested arrays.
  */
 
-namespace Barotraumix\Generator\Entity\Property;
+namespace Barotraumix\Framework\Entity\Property;
 
 /**
  * Provides helpers to perform operations on nested arrays and array keys of variable depth.
