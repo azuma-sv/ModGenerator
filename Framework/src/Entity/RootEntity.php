@@ -8,6 +8,7 @@
 namespace Barotraumix\Framework\Entity;
 
 use Barotraumix\Framework\Core;
+use Barotraumix\Framework\Services\API;
 
 /**
  * Class definition
@@ -30,6 +31,11 @@ class RootEntity extends BaroEntity {
   protected string $type;
 
   /**
+   * @var bool - Override status.
+   */
+  protected bool $override = FALSE;
+
+  /**
    * @inheritDoc
    *
    * @param string|int $id - Source application ID.
@@ -47,11 +53,12 @@ class RootEntity extends BaroEntity {
   }
 
   /**
-   * Get source application name.
-   *
-   * @return string
+   * @inheritDoc.
    */
-  public function appID(): string {
+  public function appID(string|int $appID = NULL): string {
+    if (isset($appID)) {
+      $this->appID = $appID;
+    }
     return $this->appID;
   }
 
@@ -121,6 +128,77 @@ class RootEntity extends BaroEntity {
   }
 
   /**
+   * Returns status of the entity.
+   *
+   * TRUE - If it overrides some other entity.
+   * FALSE - Means that this is a completely new entity.
+   *
+   * @param bool|NULL $override - Set new override status.
+   *
+   * @return bool
+   */
+  public function override(bool $override = NULL): bool {
+    if (isset($override)) {
+      $this->override = $override;
+    }
+    return $this->override;
+  }
+
+  /**
+   * Scans current entity for available sprites.
+   *
+   * @param string|NULL $subFolder - Indicates that file need to be replaced
+   *  from original position to another sub-folder.
+   * @param Element|NULL $entity - Recursively call scanning for children.
+   * @param array $sprites - Storage for sprites.
+   *
+   * @return array
+   */
+  public function sprites(string $subFolder = NULL, Element $entity = NULL, array &$sprites = []): array {
+    $entity = $entity ?? $this;
+    foreach (API::ATTRIBUTE_FILES as $attribute) {
+      if ($entity->hasAttribute($attribute)) {
+        $value = $entity->attribute($attribute);
+        $path = API::getPath(str_ireplace('%ModDir%/', '', $value), $this->appID());
+        if (!is_dir($path) && file_exists($path)) {
+          // Always keep original value.
+          if (!isset($sprites[$path]['ORIGINAL'])) {
+            $sprites[$path]['ORIGINAL'] = $value;
+          }
+          // In the case if we need to replace file in another sub-folder.
+          if (isset($subFolder)) {
+            if (stripos($value, '%ModDir%') !== FALSE) {
+              $value = str_ireplace('%ModDir%', $subFolder, $value);
+            }
+            else {
+              $value = API::APP_NAME . "/$value";
+            }
+            $entity->setAttribute($attribute, $value);
+          }
+          // Always keep active value.
+          if (!isset($sprites[$path]['ACTIVE'])) {
+            $sprites[$path]['ACTIVE'] = $value;
+          }
+          // @todo: Ability to cut sprites for smaller pieces.
+          if ($entity->hasAttribute('sourcerect')) {
+            $sprites[$path][$entity->attribute('sourcerect')] = $value;
+          }
+          else {
+            // In the case if we have a full-sized sprite.
+            $sprites[$path]['FULL'] = $value;
+          }
+        }
+      }
+    }
+    if ($entity->hasChildren()) {
+      foreach ($entity->children() as $child) {
+        $this->sprites($subFolder, $child, $sprites);
+      }
+    }
+    return $sprites;
+  }
+
+  /**
    * @inheritDoc.
    */
   public function debug(): string {
@@ -133,7 +211,9 @@ class RootEntity extends BaroEntity {
    * @inheritDoc.
    */
   public function create(BaroEntity $parent = NULL): static {
-    return new static($this->name(), $this->attributes(), $this->appID(), $this->file());
+    $cloned = new static($this->name(), $this->attributes(), $this->appID(), $this->file());
+    $cloned->override($this->appID() == API::APP_ID || $this->override());
+    return $cloned;
   }
 
 }

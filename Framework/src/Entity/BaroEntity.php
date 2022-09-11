@@ -126,7 +126,7 @@ abstract class BaroEntity {
   /**
    * Converts object to XML string.
    *
-   * @todo: Refactor to use more stable approach.
+   * @todo: This shit needs refactoring, some day...
    *
    * @return string
    */
@@ -161,9 +161,11 @@ abstract class BaroEntity {
   /**
    * Get source application name.
    *
+   * @param string|int|NULL - $appID - Ability to set another app id.
+   *
    * @return string
    */
-  abstract public function appID(): string;
+  abstract public function appID(string|int $appID = NULL): string;
 
   /**
    * Get source file path.

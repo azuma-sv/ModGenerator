@@ -7,14 +7,13 @@
 
 namespace Barotraumix\Framework\Compiler;
 
-use Barotraumix\Framework\Core;
-use Barotraumix\Framework\Entity\BaroEntity;
-use Barotraumix\Framework\Entity\Element;
 use Barotraumix\Framework\Entity\Property\ID;
 use Barotraumix\Framework\Entity\RootEntity;
+use Barotraumix\Framework\Entity\BaroEntity;
 use Barotraumix\Framework\Services\Database;
+use Barotraumix\Framework\Entity\Element;
 use Barotraumix\Framework\Services\API;
-use DOMDocument;
+use Barotraumix\Framework\Core;
 use SimpleXMLElement;
 
 /**
@@ -130,6 +129,8 @@ class Compiler {
   /**
    * Method to build mod structure from database.
    *
+   * @todo: This shit needs refactoring, some day...
+   *
    * @param string $path - Path to export mod.
    *
    * @return void
@@ -139,6 +140,7 @@ class Compiler {
     $types = [];
     $count = [];
     $validate = [];
+    $entityFiles = [];
     $context = $this->database()->context();
     $settingsPrimary = reset($this->modData);
     // Prepare info.
@@ -148,8 +150,10 @@ class Compiler {
       if (!$entity->isModified()) {
         continue;
       }
-      $file = $entity->file();
+      $file = $entity->override() ? $entity->file() . '.override' : $entity->file();
       $type = $entity->type();
+      $replacements = $this->database()->contextNames();
+      $file = str_replace(array_keys($replacements), array_values($replacements), $file);
       if (!isset($build[$file])) {
         $build[$file] = '';
         $types[$file] = $type;
@@ -159,6 +163,13 @@ class Compiler {
       $validate[$file][$type] = $type;
       if (count($validate[$file]) > 1) {
         API::error('We can not store multiple entities of different type (' . $type . ') in single file: ' . $file);
+      }
+      // Process images.
+      foreach ($entity->sprites($replacements[$entity->appID()]) as $entityFile => $sprites) {
+        if (stripos($sprites['ORIGINAL'], '%ModDir%') !== FALSE && !in_array($entityFile, $entityFiles)) {
+          // @todo: Ability to cut images into smaller pieces.
+          $entityFiles[$entityFile] = $path . '/' . $sprites['ACTIVE'];
+        }
       }
       // Prepare entity.
       $build[$file] .= $entity->toXML();
@@ -171,10 +182,10 @@ class Compiler {
       fn ($key) => in_array($key, explode(',', 'name,modversion,gameversion,corepackage,altnames')),
       ARRAY_FILTER_USE_KEY
     );
-    $primaryModFile = 'filelist.xml';
+    $primaryModFile = 'filelist';
     $contentPackage = new RootEntity('ContentPackage', $attributes, $this->id(), $primaryModFile);
     foreach ($build as $file => $item) {
-      $asset = new Element($types[$file], ['file' => "%ModDir%/$file"], $contentPackage);
+      $asset = new Element($types[$file], ['file' => "%ModDir%/$file.xml"], $contentPackage);
       $contentPackage->addChild($asset);
     }
     $build[$primaryModFile] = $contentPackage->toXML();
@@ -189,26 +200,29 @@ class Compiler {
       }
       // Wrap content.
       $content = empty($wrapper) ? $data : "<$wrapper>$data</$wrapper>";
-      // @todo: Implement Override behavior.
-      if ($file == $primaryModFile) {
-        $xml = '<?xml version="1.0" encoding="UTF-8"?>' . $content;
+      $override = str_ends_with($file, '.override');
+      if ($override) {
+        $xml = '<?xml version="1.0" encoding="UTF-8"?><Override>' . $content . '</Override>';
       }
       else {
-        $xml = '<?xml version="1.0" encoding="UTF-8"?><Override>' . $content . '</Override>';
+        $xml = '<?xml version="1.0" encoding="UTF-8"?>' . $content;
       }
       $xml = new SimpleXMLElement($xml);
       // Validate directory.
       if (!API::prepareDirectory("$path/$file", TRUE)) {
         API::error('Unable to create directory: ' . $path);
       }
-      // Beautify XML
-      // @todo: Refactor.
-      $dom = new DOMDocument("1.0");
-      $dom->preserveWhiteSpace = false;
-      $dom->formatOutput = true;
+      // Beautify XML.
+      $dom = Core::services()->dom();
       $dom->loadXML($xml->asXML());
       // Create a file.
-      file_put_contents("$path/$file", $dom->saveXML());
+      file_put_contents("$path/$file.xml", $dom->saveXML());
+    }
+    // Copy additional files too.
+    foreach ($entityFiles as $from => $to) {
+      if (!(API::prepareDirectory($to, TRUE) && copy($from, $to))) {
+        API::error("Unable to copy file from '$from' to '$to'.");
+      }
     }
   }
 

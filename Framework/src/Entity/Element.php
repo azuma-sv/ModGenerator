@@ -36,12 +36,10 @@ class Element extends BaroEntity {
   }
 
   /**
-   * Get source application name.
-   *
-   * @return string
+   * @inheritDoc.
    */
-  public function appID(): string {
-    return $this->root()->appID();
+  public function appID(string|int $appID = NULL): string {
+    return $this->root()->appID($appID);
   }
 
   /**

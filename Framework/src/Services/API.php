@@ -27,6 +27,11 @@ class API {
   const MOD_FILE = 'filelist.yml';
 
   /**
+   * @const array - Array of attribute names which might contain files.
+   */
+  const ATTRIBUTE_FILES = ['file', 'texture', 'vineatlas', 'decayatlas'];
+
+  /**
    * High level function to get path to Barotrauma or Workshop mods.
    *
    * @param string $path - Specified path.

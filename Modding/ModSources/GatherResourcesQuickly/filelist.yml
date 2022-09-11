@@ -1,8 +1,6 @@
 name: '[DS] Gather Resources Quickly'
 modversion: 1.0.2
 altnames: Gather Resources Quickly
-workshop:
-  dockyard: 2390137099
 variables:
   RARE: 'titanium,lead,thorium,uranium,sodium,magnesium,potassium,lithium,antibiotics'
   SONAR:
@@ -17,5 +15,4 @@ execute:
     /Holdable:
       pickingtime: '%PICKING_TIME'
     $remove: tags=ore/LevelResource/RequiredItem@items=cuttingequipment
-    $set-file: GatherResourcesQuickly.xml
-
+    $set-file: GatherResourcesQuickly

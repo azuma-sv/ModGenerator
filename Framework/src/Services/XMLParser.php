@@ -34,6 +34,11 @@ class XMLParser {
   protected array $data = [];
 
   /**
+   * @var bool - Override status.
+   */
+  protected bool $override = FALSE;
+
+  /**
    * Class constructor.
    *
    * @param string $file
@@ -43,7 +48,7 @@ class XMLParser {
   public function __construct(string $file, string $id = API::APP_ID) {
     // Init variables.
     $this->id = $id;
-    $this->file = $file;
+    $this->file = mb_substr($file, 0 , mb_strlen($file) - 4);
     // Prepare parser.
     $path = API::getPath($file, $id);
     $content = file_get_contents($path);
@@ -76,10 +81,14 @@ class XMLParser {
     // Prepare attributes.
     $attributes = (array) $XMLElement->attributes();
     $attributes = !empty($attributes['@attributes']) ? $attributes['@attributes'] : [];
+    // Content of this file overrides original entities.
+    if (!isset($parent) && $name == 'Override') {
+      $this->override = TRUE;
+    }
     // Attempt to create an entity.
     $type = Core::services()->tagNameToType($name);
     if (!isset($parent) && isset($type)) {
-      $node = new RootEntity($name, $attributes, $this->id, $this->file);
+      $node = new RootEntity($name, $attributes, $this->id, $this->id . '/' . $this->file);
     }
     // Create sub-element instead.
     else {
@@ -126,6 +135,7 @@ class XMLParser {
     if (isset($node)) {
       if ($node instanceof RootEntity) {
         $node->lock();
+        $node->override($this->override);
       }
     }
     else {

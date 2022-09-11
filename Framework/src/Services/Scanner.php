@@ -11,6 +11,7 @@
 namespace Barotraumix\Framework\Services;
 
 use Barotraumix\Framework\Entity\Property\ID;
+use Barotraumix\Framework\Entity\BaroEntity;
 use Barotraumix\Framework\Compiler\Context;
 use Barotraumix\Framework\Core;
 
@@ -79,6 +80,7 @@ class Scanner {
         /** @var \Barotraumix\Framework\Entity\RootEntity $entity */
         foreach ($this->createParser($file)->content() as $entity) {
           $context[] = $entity;
+          // $this->scanAttributesWithFiles($entity, $attributesWithFiles);
         }
       }
     }
@@ -169,6 +171,31 @@ class Scanner {
     $parser = new XMLParser($file, $this->id);
     $this->parsers[$file] = $parser;
     return $parser;
+  }
+
+  /**
+   * Method to scan for attributes which contain files (recursively).
+   *
+   * This function is created for debugging purpose, it shouldn't be used in a framework.
+   *
+   * @param BaroEntity $entity - Entity ty scan.
+   * @param array|NULL $attributes - Attributes storage.
+   */
+  protected function scanAttributesWithFiles(BaroEntity $entity, array &$attributes = NULL): void {
+    $attributes = $attributes ?? [];
+    // Check attributes for available files.
+    foreach ($entity->attributes() as $attribute => $value) {
+      $path = API::getPath(str_ireplace('%ModDir%/', '', $value), $this->id());
+      if (!is_dir($path) && file_exists($path) && !in_array($attribute, $attributes)) {
+        $attributes[] = $attribute;
+      }
+    }
+    // Check for files in child entities.
+    if ($entity->hasChildren()) {
+      foreach ($entity->children() as $child) {
+        $this->scanAttributesWithFiles($child, $attributes);
+      }
+    }
   }
 
 }
