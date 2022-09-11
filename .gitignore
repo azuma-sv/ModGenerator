@@ -1,8 +1,9 @@
-# @todo: Think on how this may be related with environment variables.
-barotrauma/*
-LocalMods/*
+# @todo: Ignore ModSources folder.
+Modding/Barotrauma/*
+Modding/LocalMods/*
+Modding/Workshop/*
 
-# Storage for environment sensitive things.
+# Storage for environment sensitive information.
 .idea/*
 .lando.local.yml
-src/temp.yml
+Framework/src/temp.yml

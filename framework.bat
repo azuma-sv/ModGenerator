@@ -1,1 +1,0 @@
-docker exec -it barotraumamoddingframework_appserver_1 php framework.php --mod=GatherResourcesQuickly

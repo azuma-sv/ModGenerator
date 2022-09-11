@@ -4,16 +4,15 @@ config:
   webroot: web
   via: nginx
 services:
+  # @todo: Rename docker container ID "appserver_1" to something better.
   appserver:
     type: php:8.1
     overrides:
       # Image with Lando PHP 8.1 and SteamCMD.
-      # @todo: Create completely custom image with minimal amount of things in it.
       image: azumasv/barotraumix:lando-php-8.1
       environment:
-        BASE_PATH: /app
-        PATH_GAME: Barotrauma
-        # @todo: Connect framework with workshop somehow.
-        PATH_WORKSHOP: '@todo: Implement...'
-        PATH_INPUT: ModSources
-        PATH_OUTPUT: LocalMods
+        BMF_PATH_FRAMEWORK: /app/Framework
+        BMF_PATH_GAME: /app/Modding/Barotrauma
+        BMF_PATH_WORKSHOP: /app/Modding/Workshop
+        BMF_PATH_INPUT: /app/Modding/ModSources
+        BMF_PATH_OUTPUT: /app/Modding/LocalMods

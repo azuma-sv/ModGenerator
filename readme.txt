@@ -1,3 +1,5 @@
+# @todo: To provide normal README.MD
+
 IsActive - Attribute name. It's a string which contains letters matching this regular expression: "^[a-zA-Z\d\-_]*$".
 This string is not a filter rule. It will ask mod generator to set a value for this attribute.
 
