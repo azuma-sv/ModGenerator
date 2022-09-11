@@ -92,7 +92,7 @@ class XMLParser {
       $this->override = TRUE;
     }
     // Attempt to create an entity.
-    if (!isset($parent) && !in_array($name, ['Override', $this->type . 's'])) {
+    if (!isset($parent) && !in_array($name, ['Override', $this->typeToTypes($this->type)])) {
       $node = new RootEntity($name, $attributes, $this->id(), $this->id() . '/' . $this->file);
       $node->type($this->type);
     }
@@ -148,6 +148,50 @@ class XMLParser {
       }
     }
     return $node ?? $children;
+  }
+
+  /**
+   * Helper function which helps to skip some specific wrappers.
+   *
+   * @param string $name - Tag name to convert.
+   *
+   * @return string
+   */
+  protected function typeToTypes(string $name): string {
+    static $mapping;
+    // Prepare mapping.
+    if (!isset($mapping)) {
+      // @todo: Mapping? :(
+      // @todo: NPCConversations.
+      $mapping = [
+        'Afflictions' => 'Afflictions',
+        'UpgradeModules' => 'UpgradeModules',
+        'BackgroundCreaturePrefabs' => 'BackgroundCreaturePrefabs',
+        'LevelObjectPrefabs' => 'LevelObjectPrefabs',
+        'Particles' => 'Particles',
+        'Decals' => 'Decals',
+        'RandomEvents' => 'RandomEvents',
+        'EventManagerSettings' => 'EventManagerSettings',
+        'LocationTypes' => 'LocationTypes',
+        'MapGenerationParameters' => 'MapGenerationParameters',
+        'LevelGenerationParameters' => 'LevelGenerationParameters',
+        'CaveGenerationParameters' => 'CaveGenerationParameters',
+        'NPCSets' => 'NPCSets',
+        'Missions' => 'Missions',
+        'TraitorMissions' => 'TraitorMissions',
+        'NPCConversations' => 'NPCConversations',
+        'Jobs' => 'Jobs',
+        'Orders' => 'Orders',
+        'Corpses' => 'Corpses',
+        'Sounds' => 'Sounds',
+        'Factions' => 'Factions',
+        'Talents' => 'Talents',
+        'TalentTrees' => 'TalentTrees',
+        'StartItems' => 'StartItems',
+      ];
+    }
+    // Return value.
+    return $mapping[$name] ?? $name . 's';
   }
 
 }

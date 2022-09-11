@@ -50,12 +50,10 @@ class API {
     }
     else {
       // Add record if it's not a translation.
+      // @todo: Improve condition.
       if (!str_contains($name, '.')) {
         $core->mappingTags->set($name, $name);
         $core->mappingTags->save();
-      }
-      else {
-        API::notice("Name '$name' has been skipped?!");
       }
     }
     // Return normalized value.

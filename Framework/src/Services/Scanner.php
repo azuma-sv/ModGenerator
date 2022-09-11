@@ -69,11 +69,12 @@ class Scanner {
     $context = Core::context($this->id());
     // Import content packages and their assets.
     $contentPackages = $this->contentPackages();
+    /** @var \Barotraumix\Framework\Entity\RootEntity $contentPackage */
     foreach ($contentPackages as $contentPackage) {
       $context[] = $contentPackage;
       // Import assets.
       // @todo: Import other types of assets.
-      $assets = $contentPackage->childrenByNames('Item', 'TalentTrees', 'Talents', 'Text');
+      $assets = $contentPackage->childrenByNames(['Item', 'TalentTree', 'Talents']);
       /** @var Element $asset */
       foreach ($assets as $asset) {
         /** @var \Barotraumix\Framework\Entity\RootEntity $entity */
@@ -82,9 +83,9 @@ class Scanner {
             $context[] = $entity;
             // $this->scanAttributesWithFiles($entity, $attributesWithFiles);
           }
-//          else {
-//            Core::translationAdd($entity);
-//          }
+          else {
+            Core::translationAdd($entity);
+          }
         }
       }
     }

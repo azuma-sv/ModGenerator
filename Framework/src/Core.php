@@ -59,7 +59,8 @@ class Core {
    * @return void
    */
   public static function translationAdd(BaroEntity $entity): void {
-    $a = 1;
+    // @todo: Implement.
+    static::get()->translations[$entity->id()] = $entity;
   }
 
   /**
