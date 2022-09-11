@@ -7,7 +7,7 @@
 
 namespace Barotraumix\Framework\Entity\Property;
 
-use Barotraumix\Framework\Core;
+use Barotraumix\Framework\Services\API;
 
 /**
  * Trait definition.
@@ -51,7 +51,7 @@ trait Name {
     if ($this->isLocked()) {
       $this->breakLock();
     }
-    $this->name = Core::services()->normalizeTagName($name);
+    $this->name = API::normalizeTagName($name);
   }
 
 }

@@ -6,13 +6,14 @@
 
 namespace Barotraumix\Framework;
 
+use Barotraumix\Framework\Services\SteamCMD;
+use Barotraumix\Framework\Entity\BaroEntity;
 use Barotraumix\Framework\Compiler\Compiler;
+use Barotraumix\Framework\Services\Database;
+use Barotraumix\Framework\Services\Settings;
+use Barotraumix\Framework\Services\Scanner;
 use Barotraumix\Framework\Compiler\Context;
 use Barotraumix\Framework\Services\API;
-use Barotraumix\Framework\Services\Database;
-use Barotraumix\Framework\Services\Scanner;
-use Barotraumix\Framework\Services\Services;
-use Barotraumix\Framework\Services\SteamCMD;
 
 /**
  * Class definition.
@@ -27,9 +28,14 @@ class Core {
   protected static Core $core;
 
   /**
-   * @var Services - Services wrapper.
+   * @var Settings - Mapping for tags with incorrect tag name case.
    */
-  protected Services $services;
+  public Settings $mappingTags;
+
+  /**
+   * @var array<BaroEntity> - Array with translations
+   */
+  protected array $translations = [];
 
   /**
    * Ger framework core service.
@@ -46,22 +52,21 @@ class Core {
   }
 
   /**
-   * Get core services' wrapper.
+   * Method to add parsed translation.
    *
-   * Helps to avoid complex dependency injection mechanism.
+   * @param BaroEntity $entity - Translation entity.
    *
-   * @return Services
+   * @return void
    */
-  public static function services(): Services {
-    return static::get()->services;
+  public static function translationAdd(BaroEntity $entity): void {
+    $a = 1;
   }
 
   /**
    * Class constructor.
    */
   public function __construct() {
-    // Services wrapper.
-    $this->services = new Services();
+    $this->mappingTags = new Settings(API::pathFramework('src/mapping.tags.yml'));
   }
 
   /**

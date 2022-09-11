@@ -213,7 +213,7 @@ class Compiler {
         API::error('Unable to create directory: ' . $path);
       }
       // Beautify XML.
-      $dom = Core::services()->dom();
+      $dom = API::dom();
       $dom->loadXML($xml->asXML());
       // Create a file.
       file_put_contents("$path/$file.xml", $dom->saveXML());

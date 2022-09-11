@@ -12,6 +12,8 @@ use Barotraumix\Framework\Services\API;
 
 /**
  * Class definition.
+ *
+ * @todo: Parse entity type with normalizeTagName().
  */
 class Parser {
 

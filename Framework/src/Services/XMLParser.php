@@ -7,10 +7,10 @@
 
 namespace Barotraumix\Framework\Services;
 
+use Barotraumix\Framework\Entity\Property\ID;
 use Barotraumix\Framework\Entity\RootEntity;
 use Barotraumix\Framework\Entity\BaroEntity;
 use Barotraumix\Framework\Entity\Element;
-use Barotraumix\Framework\Core;
 use SimpleXMLElement;
 
 /**
@@ -19,14 +19,19 @@ use SimpleXMLElement;
 class XMLParser {
 
   /**
-   * @var string - Application ID which is getting parsed.
+   * Use ID.
    */
-  protected string $id;
+  use ID;
 
   /**
    * @var string - Game-like path to the file which we are trying to parse.
    */
   protected string $file;
+
+  /**
+   * @var string - Type of the entities to parse.
+   */
+  protected string $type;
 
   /**
    * @var array - Parsed data.
@@ -45,10 +50,11 @@ class XMLParser {
    *  Game-like path to file which we are going to parse.
    * @param string $id - Application ID which is getting parsed.
    */
-  public function __construct(string $file, string $id = API::APP_ID) {
+  public function __construct(string $file, string $type, string $id = API::APP_ID) {
     // Init variables.
-    $this->id = $id;
     $this->file = mb_substr($file, 0 , mb_strlen($file) - 4);
+    $this->type = $type;
+    $this->setID($id);
     // Prepare parser.
     $path = API::getPath($file, $id);
     $content = file_get_contents($path);
@@ -77,7 +83,7 @@ class XMLParser {
    * @return BaroEntity|array|string
    */
   protected function parseNode(SimpleXMLElement $XMLElement, BaroEntity $parent = NULL): BaroEntity|array|string {
-    $name = Core::services()->normalizeTagName($XMLElement->getName());
+    $name = API::normalizeTagName($XMLElement->getName());
     // Prepare attributes.
     $attributes = (array) $XMLElement->attributes();
     $attributes = !empty($attributes['@attributes']) ? $attributes['@attributes'] : [];
@@ -86,19 +92,15 @@ class XMLParser {
       $this->override = TRUE;
     }
     // Attempt to create an entity.
-    $type = Core::services()->tagNameToType($name);
-    if (!isset($parent) && isset($type)) {
-      $node = new RootEntity($name, $attributes, $this->id, $this->id . '/' . $this->file);
+    if (!isset($parent) && !in_array($name, ['Override', $this->type . 's'])) {
+      $node = new RootEntity($name, $attributes, $this->id(), $this->id() . '/' . $this->file);
+      $node->type($this->type);
     }
     // Create sub-element instead.
     else {
       // Some entities should be ignored.
       $node = NULL;
-      if (!in_array($name, $this->entitiesToIgnore())) {
-        // Validate unrecognized entity types.
-        if (!isset($parent)) {
-          API::error("Unrecognized entity type for tag: '$name' in file: '$this->file'");
-        }
+      if (isset($parent)) {
         // Create sub-element.
         $node = new Element($name, $attributes, $parent);
       }
@@ -146,31 +148,6 @@ class XMLParser {
       }
     }
     return $node ?? $children;
-  }
-
-  /**
-   * Return array of entity XML tag names to ignore (as a root entity).
-   *
-   * Some entities should be ignored.
-   * Their XML tags will be generated automatically by framework.
-   * Example tag names: Items, Override etc...
-   *
-   * @return array
-   */
-  protected function entitiesToIgnore(): array {
-    static $entities;
-    if (!isset($entities)) {
-      $mappingEntities = Core::services()->mappingEntities->array();
-      $mappingEntities = array_unique(array_values($mappingEntities));
-      // Prepare list of wrappers to ignore.
-      foreach ($mappingEntities as $mappingEntity) {
-        // Will generate names like "Items" for elements like "Item" etc...
-        $entities[] = $mappingEntity . 's';
-      }
-      // This is a special wrapper which needs to be ignored too.
-      $entities[] = 'Override';
-    }
-    return $entities;
   }
 
 }

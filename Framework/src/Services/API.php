@@ -6,6 +6,9 @@
 
 namespace Barotraumix\Framework\Services;
 
+use Barotraumix\Framework\Core;
+use DOMDocument;
+
 /**
  * Class definition.
  */
@@ -30,6 +33,46 @@ class API {
    * @const array - Array of attribute names which might contain files.
    */
   const ATTRIBUTE_FILES = ['file', 'texture', 'vineatlas', 'decayatlas'];
+
+  /**
+   * Method to normalize tag name.
+   *
+   * @param string $name - XML tag name to normalize.
+   *
+   * @return string
+   */
+  public static function normalizeTagName(string $name): string {
+    $core = Core::get();
+    $name = mb_strtolower($name);
+    // Look for appropriate name in mapping.
+    if ($core->mappingTags->has($name)) {
+      $name = $core->mappingTags->get($name);
+    }
+    else {
+      // Add record if it's not a translation.
+      if (!str_contains($name, '.')) {
+        $core->mappingTags->set($name, $name);
+        $core->mappingTags->save();
+      }
+      else {
+        API::notice("Name '$name' has been skipped?!");
+      }
+    }
+    // Return normalized value.
+    return strval($name);
+  }
+
+  /**
+   * Create empty DOM object.
+   *
+   * @return DOMDocument
+   */
+  public static function dom(): DOMDocument {
+    $dom = new DOMDocument('1.0', 'UTF-8');
+    $dom->preserveWhiteSpace = false;
+    $dom->formatOutput = true;
+    return $dom;
+  }
 
   /**
    * High level function to get path to Barotrauma or Workshop mods.
@@ -143,7 +186,7 @@ class API {
   /**
    * Returns game-like path to content package file.
    *
-   * @param string $id - Application ID.
+   * @param string|int $id - Application ID.
    *
    * @return string
    */

@@ -7,7 +7,6 @@
 
 namespace Barotraumix\Framework\Entity;
 
-use Barotraumix\Framework\Core;
 use Barotraumix\Framework\Services\API;
 
 /**
@@ -45,10 +44,6 @@ class RootEntity extends BaroEntity {
     // Keep metadata.
     $this->appID = $id;
     $this->file = $file;
-    // Initialize entity type.
-    if (Core::services()->mappingEntities->has($name)) {
-      $this->type = Core::services()->mappingEntities->get($name);
-    }
     parent::__construct($name, $attributes);
   }
 
@@ -89,9 +84,15 @@ class RootEntity extends BaroEntity {
    *
    * Will return tag name in the case if it's a sub-element.
    *
+   * @param string|NULL $type - Set new type for entity.
+   *
    * @return string
    */
-  public function type(): string {
+  public function type(string $type = NULL): string {
+    // Set value.
+    if (isset($type)) {
+      $this->type = $type;
+    }
     // Prevent error.
     if (!isset($this->type)) {
       return $this->name();
@@ -212,6 +213,7 @@ class RootEntity extends BaroEntity {
    */
   public function create(BaroEntity $parent = NULL): static {
     $cloned = new static($this->name(), $this->attributes(), $this->appID(), $this->file());
+    $cloned->type($this->type());
     $cloned->override($this->appID() == API::APP_ID || $this->override());
     return $cloned;
   }

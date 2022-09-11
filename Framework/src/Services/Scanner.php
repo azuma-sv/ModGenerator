@@ -10,6 +10,7 @@
 
 namespace Barotraumix\Framework\Services;
 
+use Barotraumix\Framework\Entity\Element;
 use Barotraumix\Framework\Entity\Property\ID;
 use Barotraumix\Framework\Entity\BaroEntity;
 use Barotraumix\Framework\Compiler\Context;
@@ -70,17 +71,20 @@ class Scanner {
     $contentPackages = $this->contentPackages();
     foreach ($contentPackages as $contentPackage) {
       $context[] = $contentPackage;
-      // Import Item assets.
-      $assets = $contentPackage->childrenByNames('Item');
+      // Import assets.
       // @todo: Import other types of assets.
+      $assets = $contentPackage->childrenByNames('Item', 'TalentTrees', 'Talents', 'Text');
+      /** @var Element $asset */
       foreach ($assets as $asset) {
-        if (!$asset->hasAttribute('file') || !$file = $asset->attribute('file')) {
-          continue;
-        }
         /** @var \Barotraumix\Framework\Entity\RootEntity $entity */
-        foreach ($this->createParser($file)->content() as $entity) {
-          $context[] = $entity;
-          // $this->scanAttributesWithFiles($entity, $attributesWithFiles);
+        foreach ($this->createParser($asset)->content() as $entity) {
+          if ($asset->name() != 'Text') {
+            $context[] = $entity;
+            // $this->scanAttributesWithFiles($entity, $attributesWithFiles);
+          }
+//          else {
+//            Core::translationAdd($entity);
+//          }
         }
       }
     }
@@ -148,17 +152,17 @@ class Scanner {
   /**
    * Method to create parser object for specific file.
    *
-   * @param string|NULL $file - Path to the file for parsing.
-   * It uses path system like game XML files. You don't need to use URI or real
-   *   path. Just type something like:
-   * "Content/ContentPackages/Vanilla.xml" to parse game content package.
+   * @param Element|NULL $entity - BaroEntity of the asset.
    *
    * @return XMLParser
    */
-  public function createParser(string $file = NULL): XMLParser {
+  public function createParser(Element $entity = NULL): XMLParser {
     // Default file path.
-    if (!isset($file)) {
+    if (!isset($entity)) {
       $file = API::pathContentPackage($this->id);
+    }
+    else {
+      $file = $entity->attribute('file');
     }
     // Check for existing parser.
     if (isset($this->parsers[$file])) {
@@ -168,7 +172,8 @@ class Scanner {
     $string = '%ModDir%/';
     $file = str_ireplace($string, '', $file);
     // Create parser and store it in cache.
-    $parser = new XMLParser($file, $this->id);
+    $type = isset($entity) ? $entity->name() : 'ContentPackage';
+    $parser = new XMLParser($file, $type, $this->id);
     $this->parsers[$file] = $parser;
     return $parser;
   }
@@ -176,7 +181,8 @@ class Scanner {
   /**
    * Method to scan for attributes which contain files (recursively).
    *
-   * This function is created for debugging purpose, it shouldn't be used in a framework.
+   * This function is created for debugging purpose, it shouldn't be used in a
+   * framework.
    *
    * @param BaroEntity $entity - Entity ty scan.
    * @param array|NULL $attributes - Attributes storage.
