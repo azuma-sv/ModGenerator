@@ -50,8 +50,6 @@ class Database {
 
   /**
    * @var array - Local variables storage.
-   *
-   * @todo: Implement.
    */
   protected array $variablesLocal = [];
 
@@ -165,7 +163,6 @@ class Database {
     if (is_scalar($keys)) {
       $keys = [$keys];
     }
-    // @todo: Implement local scope of variables.
     $key = $isGlobal ? 'variables' : 'variablesLocal';
     NestedArray::setValue($this->$key, $keys, $variable);
   }
@@ -180,7 +177,6 @@ class Database {
    * @return void
    */
   public function variableAddMultiple(array|string $variables, bool $isGlobal = FALSE): void {
-    // @todo: Implement local scope of variables.
     $key = $isGlobal ? 'variables' : 'variablesLocal';
     $source = $this->$key;
     $destination = NestedArray::mergeDeep($source, $variables);
@@ -214,6 +210,17 @@ class Database {
   }
 
   /**
+   * Wipes local variables.
+   *
+   * Need to be used before every new included file.
+   *
+   * @return void
+   */
+  public function variablesResetLocal(): void {
+    $this->variablesLocal = [];
+  }
+
+  /**
    * Method to query the database.
    *
    * @param array|NULL $query - Query array. NULL to query EVERYTHING.
@@ -237,12 +244,13 @@ class Database {
    */
   protected function createActiveContext(): void {
     $this->context = new Context(static::CONTEXT);
-    // @todo: Set proper order for cloning.
-    foreach ($this->contextNames() as $contextName) {
+    foreach (array_reverse($this->contextNames(), TRUE) as $contextName) {
       $context = $this->context($contextName);
       /** @var \Barotraumix\Framework\Entity\RootEntity $entity */
       foreach ($context as $entity) {
-        $this->context[] = $entity->clone();
+        if (!$this->context->offsetExists($entity->id())) {
+          $this->context[] = $entity->clone();
+        }
       }
     }
   }

@@ -124,8 +124,9 @@ class Core {
    */
   public function importDatabase(string $mod): void {
     $database = $this->database($mod);
+    $translations = !empty($database->modData()['translations']);
     foreach ($database->applications() as $id) {
-      $context = $this->scanner($id)->scanContext();
+      $context = $this->scanner($id)->scanContext($translations);
       $database->contextAdd($context);
     }
   }

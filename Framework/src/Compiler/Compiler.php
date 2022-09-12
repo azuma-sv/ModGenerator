@@ -15,6 +15,7 @@ use Barotraumix\Framework\Entity\Element;
 use Barotraumix\Framework\Services\API;
 use Barotraumix\Framework\Core;
 use SimpleXMLElement;
+use Symfony\Component\Yaml\Yaml;
 
 /**
  * Class definition.
@@ -56,10 +57,15 @@ class Compiler {
     $data = $db->modData();
     $modData = $this->processDefaultSettings($data, TRUE);
     $this->modData[] = $modData;
-    // Import variables.
+    // Execute main module file.
     $db->variableAddMultiple($modData['variables'], TRUE);
-    // Execute initialization hook.
     $this->execute($modData['execute'], $db->context());
+    // Run includes.
+    foreach ($this->includes() as $include) {
+      $db->variablesResetLocal();
+      $db->variableAddMultiple($include['variables']);
+      $this->execute($include['execute'], $db->context());
+    }
     // Prepare directory.
     $path = API::pathOutput($modData['folder']);
     if (!API::removeDirectory($path)) {
@@ -265,6 +271,29 @@ class Compiler {
   }
 
   /**
+   * Method to prepare included files.
+   *
+   * @return array
+   */
+  protected function includes(): array {
+    $includes = [];
+    $database = $this->database();
+    $modData = $this->processDefaultSettings($this->database()->modData(), TRUE);
+    foreach ($modData['includes'] as $include) {
+      $path = API::pathInput($include, $this->id());
+      if (is_dir($include) || !file_exists($path)) {
+        API::notice("File '$include' doesn't exists");
+        continue;
+      }
+      $parsed = Yaml::parseFile($path);
+      if (!empty($parsed)) {
+        $includes[$include] = $this->processDefaultSettings($parsed);
+      }
+    }
+    return $includes;
+  }
+
+  /**
    * Method to process default settings of imported mod file.
    *
    * @todo: Ability to split mod into multiple smaller mods.
@@ -297,6 +326,14 @@ class Compiler {
       // Core package attribute.
       if (!isset($settings['corepackage'])) {
         $settings['corepackage'] = FALSE;
+      }
+      // Core package attribute.
+      if (!isset($settings['translations'])) {
+        $settings['translations'] = FALSE;
+      }
+      // Core package attribute.
+      if (!isset($settings['includes'])) {
+        $settings['includes'] = [];
       }
     }
     // Mod variables.

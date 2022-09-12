@@ -27,7 +27,7 @@ class API {
   /**
    * @const string - Primary mod file name.
    */
-  const MOD_FILE = 'filelist.yml';
+  const MOD_FILE = 'filelist.yaml';
 
   /**
    * @const array - Array of attribute names which might contain files.

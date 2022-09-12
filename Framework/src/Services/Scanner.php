@@ -63,18 +63,27 @@ class Scanner {
   /**
    * Builds and returns context object for this scanner.
    *
+   * @param bool $translations - Indicates that we should scan translations.
+   *
    * @return Context
    */
-  public function scanContext(): Context {
+  public function scanContext(bool $translations = FALSE): Context {
     $context = Core::context($this->id());
+    if (!$context->isEmpty()) {
+      return $context;
+    }
+    // @todo: Import other types of assets.
+    $typesToScan = ['Item', 'TalentTree', 'Talents'];
+    if ($translations) {
+      $typesToScan[] = 'Text';
+    }
     // Import content packages and their assets.
     $contentPackages = $this->contentPackages();
     /** @var \Barotraumix\Framework\Entity\RootEntity $contentPackage */
     foreach ($contentPackages as $contentPackage) {
       $context[] = $contentPackage;
       // Import assets.
-      // @todo: Import other types of assets.
-      $assets = $contentPackage->childrenByNames(['Item', 'TalentTree', 'Talents']);
+      $assets = $contentPackage->childrenByNames($typesToScan);
       /** @var Element $asset */
       foreach ($assets as $asset) {
         /** @var \Barotraumix\Framework\Entity\RootEntity $entity */
@@ -84,7 +93,9 @@ class Scanner {
             // $this->scanAttributesWithFiles($entity, $attributesWithFiles);
           }
           else {
-            Core::translationAdd($entity);
+            if ($translations) {
+              Core::translationAdd($entity);
+            }
           }
         }
       }
