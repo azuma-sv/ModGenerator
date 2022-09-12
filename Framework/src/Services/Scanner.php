@@ -73,7 +73,7 @@ class Scanner {
       return $context;
     }
     // @todo: Import other types of assets.
-    $typesToScan = ['Item', 'TalentTree', 'Talents', 'TraitorMissions', 'CaveGenerationParameters', 'UpgradeModules', 'EnemySubmarine', 'NPCSets', 'Factions', 'BackgroundCreaturePrefabs', 'LevelObjectPrefabs', 'MapCreature', 'RuinConfig', 'Jobs', 'Afflictions', 'Orders', 'WreckAIConfig', 'Sounds', 'Corpses', 'Outpost', 'Missions', 'Particles', 'BeaconStation', 'Structure'];
+    $typesToScan = ['Item', 'TalentTree', 'Talents', 'TraitorMissions', 'CaveGenerationParameters', 'UpgradeModules', 'EnemySubmarine', 'NPCSets', 'Factions', 'BackgroundCreaturePrefabs', 'LevelObjectPrefabs', 'MapCreature', 'RuinConfig', 'Jobs', 'Afflictions', 'Orders', 'WreckAIConfig', 'Sounds', 'Corpses', 'Outpost', 'Missions', 'Particles', 'BeaconStation', 'Structure', 'Character', 'RandomEvents', 'LocationTypes'];
     if ($translations) {
       $typesToScan[] = 'Text';
     }
