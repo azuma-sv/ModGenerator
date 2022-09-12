@@ -73,7 +73,7 @@ class Scanner {
       return $context;
     }
     // @todo: Import other types of assets.
-    $typesToScan = ['Item', 'TalentTree', 'Talents', 'TraitorMissions', 'CaveGenerationParameters', 'UpgradeModules', 'EnemySubmarine', 'NPCSets', 'Factions', 'BackgroundCreaturePrefabs', 'LevelObjectPrefabs', 'MapCreature'];
+    $typesToScan = ['Item', 'TalentTree', 'Talents', 'TraitorMissions', 'CaveGenerationParameters', 'UpgradeModules', 'EnemySubmarine', 'NPCSets', 'Factions', 'BackgroundCreaturePrefabs', 'LevelObjectPrefabs', 'MapCreature', 'RuinConfig', 'Jobs', 'Afflictions', 'Orders', 'WreckAIConfig', 'Sounds', 'Corpses', 'Outpost', 'Missions', 'Particles', 'BeaconStation', 'Structure'];
     if ($translations) {
       $typesToScan[] = 'Text';
     }
@@ -86,8 +86,8 @@ class Scanner {
       $assets = $contentPackage->childrenByNames($typesToScan);
       /** @var Element $asset */
       foreach ($assets as $asset) {
-        // Skip assets with non XML content.
-        if (in_array($asset->name(), ['EnemySubmarine'])) {
+        // Skip assets with non-XML content.
+        if (in_array($asset->name(), ['EnemySubmarine', 'Outpost', 'BeaconStation'])) {
           continue;
         }
         /** @var \Barotraumix\Framework\Entity\RootEntity $entity */
