@@ -94,7 +94,7 @@ class Compiler {
       // @todo: Refactor. Parser shouldn't apply variables.
       $command = Parser::applyVariables($rawCommand, $this->database());
       if (is_string($data)) {
-        $data = Parser::applyVariables($data, $this->database());
+        $data = Parser::applyVariables($data, $this->database(), TRUE);
       }
       // Check if this is a function.
       if (F::isFn($command)) {
@@ -276,7 +276,6 @@ class Compiler {
    */
   protected function includes(): array {
     $includes = [];
-    $database = $this->database();
     $modData = $this->processDefaultSettings($this->database()->modData(), TRUE);
     foreach ($modData['includes'] as $include) {
       $path = API::pathInput($include, $this->id());

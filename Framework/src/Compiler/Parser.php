@@ -276,10 +276,12 @@ class Parser {
    *
    * @param string $string - Command to tokenize.
    * @param Database $database - Database with variables to apply.
+   * @param bool $replaceWithArray - If entire string is a variable token - it
+   * might get replaced with contained array.
    *
-   * @return string
+   * @return array|string
    */
-  public static function applyVariables(string $string, Database $database): string {
+  public static function applyVariables(string $string, Database $database, bool $replaceWithArray = FALSE): array|string {
     // Look for possible variables.
     $positions = static::findSyntaxLetter('%', $string);
     if (empty($positions)) {
@@ -300,16 +302,19 @@ class Parser {
       $keys = explode('>', mb_substr($token, 1));
       $variable = $database->variableGet($keys);
       // Convert arrays to string.
-      if (is_array($variable)) {
+      if (is_array($variable) && (!$replaceWithArray || $token != trim($string))) {
         $variable = implode(',', $variable);
       }
       // Every variable may contain another variable inside it.
       if (is_scalar($variable)) {
         // Recursive replacement.
         $variable = static::applyVariables(strval($variable), $database);
+        // Apply changes.
+        $string = substr_replace($string, $variable, $position, mb_strlen($token));
       }
-      // Apply changes.
-      $string = substr_replace($string, $variable, $position, mb_strlen($token));
+      else {
+        return $variable;
+      }
     }
     return $string;
   }

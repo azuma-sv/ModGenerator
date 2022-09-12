@@ -137,6 +137,9 @@ class F {
         if ($item instanceof BaroEntity) {
           $messages[$key] = $item->debug();
         }
+        else {
+          $messages[] = $item;
+        }
       }
     }
     // Print data.
