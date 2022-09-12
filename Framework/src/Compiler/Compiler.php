@@ -101,7 +101,6 @@ class Compiler {
         F::function($this, $command, $data, $context);
         continue;
       }
-      // @todo: Implement way to create new element.
       // In case if we need to filter context scope.
       if (Parser::isQuery($command)) {
         // Validate data.

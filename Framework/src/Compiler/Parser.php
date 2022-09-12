@@ -25,7 +25,6 @@ class Parser {
    * @return bool
    */
   public static function isAttribute(string $string): bool {
-    // @todo: Test this regexp.
     preg_match('/^[a-zA-Z\d\-_]*$/', $string, $matches);
     $attribute = reset($matches);
     return !empty($attribute);
@@ -55,12 +54,11 @@ class Parser {
   public static function query(string $string): array {
     $query = [];
     // Split query into sections.
-    $inheritance = static::explode('/,<,>', $string, TRUE, TRUE);
+    $inheritance = static::explode('~,/,<,>', $string, TRUE, TRUE);
     // Process each section.
     foreach ($inheritance as $section) {
       // Wrap sub-element search into parent array.
-      // @todo: Test protection char.
-      if (in_array($section, ['<', '/', '\\', '>'])) {
+      if (in_array($section, ['~', '<', '/', '>'])) {
         $query = [
           'child' => $query,
           'child_operator' => $section,
@@ -339,6 +337,16 @@ class Parser {
    */
   protected static function queryElement(string $string): array {
     $query = [];
+    // Parse order first.
+    $syntax = static::highlightSyntax($string);
+    $matches = [];
+    preg_match('/\{(\d*|-\d*)}$/', $syntax, $matches);
+    $order = !empty($matches[1]) ? intval($matches[1]) : 0;
+    $position = mb_strpos($syntax, '{');
+    if ($position !== FALSE) {
+      $string = mb_substr($string, 0, $position);
+    }
+    $query['order'] = !empty($order) ? $order : 0;
     // Grab entity name condition.
     $ruleParts = static::explode('@', $string);
     // Matches everything.
@@ -353,8 +361,6 @@ class Parser {
     if (count($ruleParts) > 2) {
       API::error('Invalid command syntax. Single query section can\'t contain more than one separator like "@" in command: ' . $string);
     }
-    // @todo: Parse order.
-    $query['order'] = 0;
     // Normal section.
     if (count($ruleParts) == 2) {
       $query['entity'] = reset($ruleParts);

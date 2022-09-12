@@ -6,6 +6,7 @@
 
 namespace Barotraumix\Framework\Compiler;
 
+use Barotraumix\Framework\Entity\Element;
 use Barotraumix\Framework\Entity\Property\ID;
 use Barotraumix\Framework\Entity\BaroEntity;
 use Barotraumix\Framework\Entity\RootEntity;
@@ -464,11 +465,6 @@ class Context implements Iterator, ArrayAccess, Countable {
               unset($collection[$step][$id]);
             }
           }
-          // This is a very weird case which needs attention.
-          if (count($collection[$depth]) !== count($collection[$step])) {
-            // @todo: Remove in future.
-            API::error('Incorrect query cleaning method. Needs admin attention.');
-          }
           // Break cleaning.
           if (empty($step)) {
             $break = TRUE;
@@ -515,9 +511,30 @@ class Context implements Iterator, ArrayAccess, Countable {
           }
           return $data;
 
-        case '\\':
-          // @todo: Implement.
-          break;
+        // Create new elements.
+        case '~':
+          $name = API::normalizeTagName($condition['child']['entity']);
+          if (empty($depth) && $this->isRoot() && $this->hasID()) {
+            // Root entity.
+            $entity = new RootEntity($name, [], '', 'new.' . $name);
+            $entity->type($name);
+            $entity->override(FALSE);
+            $entity->breakLock();
+            $this->add($entity);
+            $data[] = $entity;
+          }
+          else {
+            foreach ($collection[$depth] as $scope) {
+              /** @var BaroEntity $entity */
+              foreach ($scope as $entity) {
+                // Normal element.
+                $child = new Element($name, [], $entity);
+                $entity->addChild($child, $condition['child']['order'], $name);
+                $data[] = $child;
+              }
+            }
+          }
+          return $data;
 
       }
       // Switch to another step.
@@ -604,6 +621,8 @@ class Context implements Iterator, ArrayAccess, Countable {
 
   /**
    * Check if given entity match to a single condition.
+   *
+   * @todo: Improve strict comparison "" in conjunction with: *, ^, $.
    *
    * @param BaroEntity $entity - Given entity.
    * @param array $condition - Given condition of specific attribute.

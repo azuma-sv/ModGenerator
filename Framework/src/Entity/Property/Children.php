@@ -118,19 +118,49 @@ trait Children {
    * @param Element $entity
    *  Single child entity to add.
    * @param string|int $order - Order number.
-   * @param string $group - Group of elements which impacts order.
+   * @param string|NULL $group - Group of elements which impacts order.
    */
-  public function addChild(Element $entity, string|int $order = 0, string $group = ''):void {
+  public function addChild(Element $entity, string|int $order = 0, string $group = NULL): void {
     // Break lock if exists.
     if ($this->isLocked()) {
       $this->breakLock();
     }
-    // @todo: Implement.
-    unset($order, $group);
     if (!$this->addChildValidate($entity)) {
       API::error($this->addChildErrorMessage());
     }
-    $this->children[$entity->id()] = $entity;
+    // @todo: Implement.
+    // Collect group of children to work with.
+    $children = isset($group) ? $this->childrenByNames($group) : $this->children;
+    $keys = array_keys($children);
+    // Prepare order argument.
+    $key = NULL;
+    $count = count($keys);
+    $order = empty($order) ? 0 : intval($order);
+    if (!empty($count) && !empty($order)) {
+      $order = $order < 0 ? $count + $order : $order - 1;
+      $order = max($order, 0);
+      if (isset($keys[$order])) {
+        $key = $keys[$order];
+      }
+    }
+    // Set child in specific place.
+    if (isset($key)) {
+      $keys = array_flip(array_keys($this->children));
+      $order = $keys[$key];
+      if (empty($order)) {
+        // Just add to beginning.
+        $this->children = [$entity->id() => $entity] + $this->children;
+      }
+      else {
+        // Slice array.
+        $half = array_slice($this->children, 0, $order, TRUE);
+        $half[$entity->id()] = $entity;
+        $this->children = $half + array_slice($this->children, $order, NULL, TRUE);
+      }
+    }
+    else {
+      $this->children[$entity->id()] = $entity;
+    }
   }
 
   /**

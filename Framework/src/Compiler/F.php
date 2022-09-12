@@ -8,6 +8,8 @@
 namespace Barotraumix\Framework\Compiler;
 
 use Barotraumix\Framework\Entity\BaroEntity;
+use Barotraumix\Framework\Entity\Element;
+use Barotraumix\Framework\Entity\RootEntity;
 use Barotraumix\Framework\Services\API;
 
 /**
@@ -49,6 +51,10 @@ class F {
 
       case 'debug':
         static::fnDebug($compiler, $string, $arguments, $value, $context);
+        break;
+
+      case 'create':
+        static::fnCreate($compiler, $string, $arguments, $value, $context);
         break;
 
       case 'remove':
@@ -141,6 +147,61 @@ class F {
     API::debug(print_r($messages, TRUE));
     API::debug('DEBUG FINISH: --------------------------------');
     unset($command);
+  }
+
+  /**
+   * Method to create elements in database.
+   *
+   * @param Compiler $compiler - Compiler service.
+   * @param string $command - Command to execute.
+   * @param array $arguments - Arguments array.
+   * @param array|string $value - Function value.
+   * @param Context|NULL $context - Context (or nothing).
+   *
+   * @return void
+   */
+  protected static function fnCreate(Compiler $compiler, string $command, array $arguments, array|string $value, Context $context = NULL): void {
+    // Validate filter rule.
+    if (!is_array($value)) {
+      API::error('Wrong value format for $create command. Command: ' . $command);
+    }
+    $name = reset($arguments);
+    if (empty($name)) {
+      API::error('Unable to create entity without tag name. Command: ' . $command);
+    }
+    $order = intval(next($arguments));
+    // Wrap to array if necessary.
+    if (is_string(key($value))) {
+      $value = [$value];
+    }
+    // Create each element.
+    foreach ($value as $item) {
+      $orderSet = !empty($order);
+      // Root entity.
+      if ($context->isRoot() && $context->hasID()) {
+        $entity = new RootEntity($name, [], '', 'new.' . $name);
+        $entity->type($name);
+        $entity->override(FALSE);
+        $entity->breakLock();
+        $context->add($entity);
+        // Import attributes.
+        $entityContext = new Context();
+        $entityContext->add($entity);
+        $compiler->execute($item, $entityContext);
+      }
+      else {
+        // Create this element for every item.
+        $entitiesContext = new Context();
+        foreach ($context as $entity) {
+          // Normal element.
+          $child = new Element($name, [], $entity);
+          $entity->addChild($child, $orderSet ? $order : 0, $orderSet ? NULL : $name);
+          $entitiesContext->add($entity);
+          $orderSet = FALSE;
+        }
+        $compiler->execute($item, $entitiesContext);
+      }
+    }
   }
 
   /**
