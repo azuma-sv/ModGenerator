@@ -141,6 +141,8 @@ door: Door
 dropcontaineditems: DropContainedItems
 elastin: Elastin
 electricaldischarger: ElectricalDischarger
+endmessagefailure: EndMessageFailure
+endmessagesuccess: EndMessageSuccess
 endmovesound: EndMoveSound
 endsprite: EndSprite
 enemysubmarine: EnemySubmarine
@@ -165,6 +167,7 @@ geneticmaterial: GeneticMaterial
 giveexperience: GiveExperience
 giveskill: GiveSkill
 givetalentinfo: GiveTalentInfo
+goal: Goal
 graphline: Graphline
 greatercomponent: GreaterComponent
 greenpaint: GreenPaint
@@ -176,6 +179,7 @@ hyperzine: Hyperzine
 icon: Icon
 idcard: IDCard
 infectedsprite: InfectedSprite
+infotext: Infotext
 input: Input
 inventoryicon: InventoryIcon
 isactive: IsActive
@@ -209,6 +213,7 @@ methamphetamine: Methamphetamine
 minimap: MiniMap
 minimapicon: MiniMapIcon
 missions: Missions
+modifier: Modifier
 modulocomponent: ModuloComponent
 monsterscums: MonsterScums
 morbusine: Morbusine
@@ -222,6 +227,7 @@ nametag: NameTag
 notcomponent: NotComponent
 npcconversations: NPCConversations
 npcsets: NPCSets
+objective: Objective
 opium: Opium
 orcomponent: OrComponent
 orders: Orders
@@ -309,7 +315,9 @@ spinningbarrelsprite: SpinningBarrelSprite
 sprayer: Sprayer
 sprite: Sprite
 stabilozine: Stabilozine
+startinfotext: StartInfoText
 startitems: StartItems
+startmessage: StartMessage
 startmovesound: StartMoveSound
 staticbody: StaticBody
 statuseffect: StatusEffect
@@ -344,6 +352,7 @@ textbox: TextBox
 throwable: Throwable
 tickbox: TickBox
 tonicliquid: TonicLiquid
+traitormission: TraitorMission
 traitormissions: TraitorMissions
 trigger: Trigger
 triggercomponent: TriggerComponent

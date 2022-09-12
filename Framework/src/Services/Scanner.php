@@ -73,7 +73,7 @@ class Scanner {
       return $context;
     }
     // @todo: Import other types of assets.
-    $typesToScan = ['Item', 'TalentTree', 'Talents'];
+    $typesToScan = ['Item', 'TalentTree', 'Talents', 'TraitorMissions'];
     if ($translations) {
       $typesToScan[] = 'Text';
     }
