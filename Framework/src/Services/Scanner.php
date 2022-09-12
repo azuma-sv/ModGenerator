@@ -72,11 +72,13 @@ class Scanner {
     if (!$context->isEmpty()) {
       return $context;
     }
-    // @todo: Import other types of assets.
-    $typesToScan = ['Item', 'TalentTree', 'Talents', 'TraitorMissions', 'CaveGenerationParameters', 'UpgradeModules', 'EnemySubmarine', 'NPCSets', 'Factions', 'BackgroundCreaturePrefabs', 'LevelObjectPrefabs', 'MapCreature', 'RuinConfig', 'Jobs', 'Afflictions', 'Orders', 'WreckAIConfig', 'Sounds', 'Corpses', 'Outpost', 'Missions', 'Particles', 'BeaconStation', 'Structure', 'Character', 'RandomEvents', 'LocationTypes'];
-    if ($translations) {
-      $typesToScan[] = 'Text';
+    // Ignore some packages from parsing.
+    $ignore = ['EnemySubmarine', 'Outpost', 'BeaconStation', 'Wreck', 'Submarine', 'OutpostModule'];
+    if (!$translations) {
+      $ignore[] = 'Text';
     }
+    // @todo: Import other types of assets.
+    $typesToScan = ['Item', 'TalentTree', 'Talents', 'TraitorMissions', 'CaveGenerationParameters', 'UpgradeModules', 'EnemySubmarine', 'NPCSets', 'Factions', 'BackgroundCreaturePrefabs', 'LevelObjectPrefabs', 'MapCreature', 'RuinConfig', 'Jobs', 'Afflictions', 'Orders', 'WreckAIConfig', 'Sounds', 'Corpses', 'Outpost', 'Missions', 'Particles', 'BeaconStation', 'Structure', 'Character', 'RandomEvents', 'LocationTypes', 'Wreck', 'Submarine', 'Text', 'UIStyle', 'OutpostModule', 'Decals', 'EventManagerSettings', 'MapGenerationParameters', 'LevelGenerationParameters', 'OutpostConfig', 'NPCConversations', 'SkillSettings', 'ItemAssembly', 'StartItems'];
     // Import content packages and their assets.
     $contentPackages = $this->contentPackages();
     /** @var \Barotraumix\Framework\Entity\RootEntity $contentPackage */
@@ -87,7 +89,7 @@ class Scanner {
       /** @var Element $asset */
       foreach ($assets as $asset) {
         // Skip assets with non-XML content.
-        if (in_array($asset->name(), ['EnemySubmarine', 'Outpost', 'BeaconStation'])) {
+        if (in_array($asset->name(), $ignore)) {
           continue;
         }
         /** @var \Barotraumix\Framework\Entity\RootEntity $entity */
