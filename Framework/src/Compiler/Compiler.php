@@ -186,7 +186,7 @@ class Compiler {
       if (!$entity->isModified()) {
         continue;
       }
-      $file = $entity->override() ? $entity->file() . '.override' : $entity->file();
+      $file = $entity->override() && !$settingsPrimary['corepackage'] ? $entity->file() . '.override' : $entity->file();
       $type = $entity->type();
       $replacements = $this->database()->contextNames();
       $file = str_replace(array_keys($replacements), array_values($replacements), $file);
