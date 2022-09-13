@@ -7,8 +7,6 @@
 
 namespace Barotraumix\Framework\Entity\Property;
 
-use Barotraumix\Framework\Core;
-
 /**
  * Trait definition.
  */

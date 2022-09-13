@@ -1,0 +1,42 @@
+ContentPackage: ContentPackages
+Item: Items
+Character: Characters
+MapCreature: ''
+Wreck:
+Submarine:
+Text: ''
+UIStyle: ''
+Afflictions: Afflictions
+Structure: Prefabs
+UpgradeModules: UpgradeModules
+RuinConfig: ''
+OutpostModule:
+WreckAIConfig: ''
+BackgroundCreaturePrefabs: BackgroundCreatures
+LevelObjectPrefabs: LevelObjects
+Particles: Prefabs
+Decals: Prefabs
+RandomEvents: RandomEvents
+EventManagerSettings: ''
+LocationTypes: LocationTypes
+MapGenerationParameters: ''
+LevelGenerationParameters: ''
+CaveGenerationParameters: ''
+OutpostConfig: ''
+NPCSets: NPCSets
+Missions: Missions
+TraitorMissions: TraitorMissions
+NPCConversations: ''
+Jobs: Jobs
+Orders: Orders
+Corpses: Corpses
+Sounds: Sounds
+SkillSettings: ''
+Factions: Factions
+Outpost:
+BeaconStation:
+EnemySubmarine:
+ItemAssembly: ItemAssemblies
+Talents: Talents
+TalentTrees: TalentTrees
+StartItems: StartItems

@@ -96,9 +96,10 @@ class Compiler {
       if (is_string($data)) {
         $data = Parser::applyVariables($data, $this->database(), TRUE);
       }
+      // @todo: Inline functions.
       // Check if this is a function.
-      if (F::isFn($command)) {
-        F::function($this, $command, $data, $context);
+      if (Functions::isFn($command)) {
+        Functions::function($this, $command, $data, $context);
         continue;
       }
       // In case if we need to filter context scope.
@@ -188,7 +189,7 @@ class Compiler {
       ARRAY_FILTER_USE_KEY
     );
     $primaryModFile = 'filelist';
-    $contentPackage = new RootEntity('ContentPackage', $attributes, $this->id(), $primaryModFile);
+    $contentPackage = new RootEntity('ContentPackage', $attributes, 'ContentPackage', $this->id(), $primaryModFile);
     foreach ($build as $file => $item) {
       $asset = new Element($types[$file], ['file' => "%ModDir%/$file.xml"], $contentPackage);
       $contentPackage->addChild($asset);
@@ -196,15 +197,16 @@ class Compiler {
     $build[$primaryModFile] = $contentPackage->toXML();
     // @todo: Multiple content packages?
     $count[$primaryModFile] = 1;
+    $types[$primaryModFile] = 'ContentPackage';
     // Prepare XML objects.
     foreach ($build as $file => $data) {
       // Provide wrapping tag.
-      $wrapper = '';
-      if ($count[$file] > 1) {
-        $wrapper = $types[$file] . 's';
+      $wrapper = API::getMainWrapper($types[$file]);
+      if (!isset($wrapper)) {
+        API::error('Unable to write non-XML file for asset: ' . $types[$file] . ' file: ' . $file);
       }
       // Wrap content.
-      $content = empty($wrapper) ? $data : "<$wrapper>$data</$wrapper>";
+      $content = (empty($wrapper) || $count[$file] == 1) ? $data : "<$wrapper>$data</$wrapper>";
       $override = str_ends_with($file, '.override');
       if ($override) {
         $xml = '<?xml version="1.0" encoding="UTF-8"?><Override>' . $content . '</Override>';

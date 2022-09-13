@@ -2,6 +2,8 @@
 /**
  * @file
  * Context is used to store a set of data (or a single value).
+ *
+ * @todo: Might need some refactoring.
  */
 
 namespace Barotraumix\Framework\Compiler;
@@ -45,17 +47,6 @@ class Context implements Iterator, ArrayAccess, Countable {
    * @var int - Current position of iterator.
    */
   protected int $position = 0;
-
-  /**
-   * Class constructor.
-   *
-   * @param string|NULL $id - Context name.
-   */
-  public function __construct(string $id = NULL) {
-    if (isset($id)) {
-      $this->setID($id);
-    }
-  }
 
   /**
    * Returns raw array with context data.
@@ -160,7 +151,7 @@ class Context implements Iterator, ArrayAccess, Countable {
    *
    * @return bool
    */
-  public function isObject(): bool {
+  public function isBaroEntity(): bool {
     return $this->dataType() == 'object';
   }
 
@@ -188,7 +179,7 @@ class Context implements Iterator, ArrayAccess, Countable {
    * @return bool
    */
   public function isEmpty(): bool {
-    return $this->dataType() === NULL;
+    return empty($this->storage);
   }
 
   /**
@@ -375,6 +366,9 @@ class Context implements Iterator, ArrayAccess, Countable {
    */
   protected function validateValue(mixed $value): void {
     $dataType = $this->detectType($value);
+    if ($dataType == 'object' && !$value instanceof BaroEntity) {
+      API::error("Context can handle only BaroEntity objects.");
+    }
     if ($this->isEmpty()) {
       $this->dataType = $dataType;
       if ($value instanceof BaroEntity) {
@@ -389,7 +383,7 @@ class Context implements Iterator, ArrayAccess, Countable {
       // Validate BaroEntities.
       if ($value instanceof BaroEntity) {
         // Validate root status.
-        if ($this->isRoot() != $value instanceof RootEntity) {
+        if ($this->isRoot() !== $value instanceof RootEntity) {
           if ($this->isRoot()) {
             API::error("Attempt to insert NON-ROOT entity into the context which contains ONLY ROOT entities.");
           }
@@ -415,7 +409,7 @@ class Context implements Iterator, ArrayAccess, Countable {
     $depthToReturn = NULL;
     $collection = [[]];
     $condition = $conditions;
-    if ($this->isRoot() === NULL || $this->isEmpty()) {
+    if (!$this->isBaroEntity() || $this->isEmpty()) {
       return $data;
     }
     // Walk through all conditions.
@@ -454,7 +448,7 @@ class Context implements Iterator, ArrayAccess, Countable {
         return $data;
       }
 
-      // Filter previous steps.
+      // Filter previous steps from entities which do not match to child conditions.
       if (!empty($depth)) {
         $step = $depth - 1;
         $break = FALSE;
@@ -486,7 +480,7 @@ class Context implements Iterator, ArrayAccess, Countable {
         return $data;
       }
 
-      // Apply operator (just skip "/").
+      // Apply operator (for "/" - just skip).
       switch ($condition['child_operator']) {
         // In case if we should return objects from previous step.
         case '<':
@@ -514,16 +508,25 @@ class Context implements Iterator, ArrayAccess, Countable {
         // Create new elements.
         case '~':
           $name = API::normalizeTagName($condition['child']['entity']);
-          if (empty($depth) && $this->isRoot() && $this->hasID()) {
+          if (empty($depth) && $this instanceof ContextRoot) {
+            // Detect entity type.
+            if (!empty($condition['child']['type'])) {
+              $type = $condition['child']['type'];
+            }
+            else {
+              $type = API::getTypeByName($name);
+              if (empty($type)) {
+                API::error("Unable to determine entity type (content package asset type) by XML tag name '$name'. Please provide entity type in a query in this way: ~$name(EntityType). For example: ~Decal(Structure)");
+              }
+            }
             // Root entity.
-            $entity = new RootEntity($name, [], '', 'new.' . $name);
-            $entity->type($name);
-            $entity->override(FALSE);
+            $entity = new RootEntity($name, [], $type, '', 'new.' . $name);
             $entity->breakLock();
             $this->add($entity);
             $data[] = $entity;
           }
           else {
+            // Create child entity for all entities found by a query.
             foreach ($collection[$depth] as $scope) {
               /** @var BaroEntity $entity */
               foreach ($scope as $entity) {
@@ -537,7 +540,7 @@ class Context implements Iterator, ArrayAccess, Countable {
           return $data;
 
       }
-      // Switch to another step.
+      // Switch to next step.
       $condition = $condition['child'];
       $depth++;
     }
@@ -553,13 +556,18 @@ class Context implements Iterator, ArrayAccess, Countable {
    */
   protected function entityFilter(array $list, array $condition): array {
     $results = [];
-    $type = $condition['entity'];
+    $nameCondition = $condition['entity'];
+    $typeCondition = $condition['type'];
     // Check each item.
     /** @var BaroEntity $entity */
     foreach ($list as $entity) {
-      $name = $entity instanceof RootEntity ? $entity->type() : $entity->name();
+      $name = $entity->name();
       // Skip entities which do not match to our type.
-      if (!empty($type) && $name != $type) {
+      if (!empty($nameCondition) && $name != $nameCondition) {
+        continue;
+      }
+      // Additionally check entity type condition.
+      if (!empty($typeCondition) && $entity instanceof RootEntity && $entity->type() != $typeCondition) {
         continue;
       }
       // Check attribute conditions.

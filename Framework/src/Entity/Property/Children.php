@@ -128,7 +128,6 @@ trait Children {
     if (!$this->addChildValidate($entity)) {
       API::error($this->addChildErrorMessage());
     }
-    // @todo: Implement.
     // Collect group of children to work with.
     $children = isset($group) ? $this->childrenByNames($group) : $this->children;
     $keys = array_keys($children);

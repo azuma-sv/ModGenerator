@@ -6,13 +6,13 @@
 
 namespace Barotraumix\Framework;
 
+use Barotraumix\Framework\Compiler\ContextRoot;
 use Barotraumix\Framework\Services\SteamCMD;
 use Barotraumix\Framework\Entity\BaroEntity;
 use Barotraumix\Framework\Compiler\Compiler;
 use Barotraumix\Framework\Services\Database;
 use Barotraumix\Framework\Services\Settings;
 use Barotraumix\Framework\Services\Scanner;
-use Barotraumix\Framework\Compiler\Context;
 use Barotraumix\Framework\Services\API;
 
 /**
@@ -31,6 +31,16 @@ class Core {
    * @var Settings - Mapping for tags with incorrect tag name case.
    */
   public Settings $mappingTags;
+
+  /**
+   * @var Settings - Mapping for tag names with entity type.
+   */
+  public Settings $mappingEntity;
+
+  /**
+   * @var Settings - Mapping for ignored wrappers of different assets.
+   */
+  public Settings $mappingIgnoredWrappers;
 
   /**
    * @var array<BaroEntity> - Array with translations
@@ -68,6 +78,8 @@ class Core {
    */
   public function __construct() {
     $this->mappingTags = new Settings(API::pathFramework('src/mapping.tags.yml'));
+    $this->mappingEntity = new Settings(API::pathFramework('src/mapping.entity.yml'));
+    $this->mappingIgnoredWrappers = new Settings(API::pathFramework('src/mapping.ignored.wrappers.yml'));
   }
 
   /**
@@ -185,14 +197,14 @@ class Core {
    *
    * @param string $id - Context ID to get or create.
    *
-   * @return Context
+   * @return ContextRoot
    */
-  public static function context(string $id): Context {
+  public static function context(string $id): ContextRoot {
     static $contexts;
     if (isset($contexts[$id])) {
       return $contexts[$id];
     }
-    $contexts[$id] = new Context($id);
+    $contexts[$id] = new ContextRoot($id);
     return $contexts[$id];
   }
 

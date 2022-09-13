@@ -41,7 +41,7 @@ class Parser {
    * @return bool
    */
   public static function isQuery(string $string): bool {
-    return !F::isFn($string) && !static::isAttribute($string);
+    return !Functions::isFn($string) && !static::isAttribute($string);
   }
 
   /**
@@ -331,6 +331,23 @@ class Parser {
   }
 
   /**
+   * Will return entity name and entity type as array.
+   *
+   * @param string $string - String to parse.
+   *
+   * @return array
+   */
+  protected static function parseEntityName(string $string): array {
+    $data = [];
+    $matches = [];
+    preg_match('/\(([a-zA-Z\d_.-])\)$/', $string, $matches);
+    $data['type'] = !empty($matches[1]) ? $matches[1] : '';
+    $position = mb_strpos($string, '(');
+    $data['entity'] = $position !== FALSE ? mb_substr($string, 0, $position) : $string;
+    return array_reverse($data, TRUE);
+  }
+
+  /**
    * Method to parse single section of filter rule.
    *
    * Section is a filter part which is located between letters like /, < or >.
@@ -341,7 +358,11 @@ class Parser {
    * @return array
    */
   protected static function queryElement(string $string): array {
-    $query = [];
+    $query = [
+      'entity' => '',
+      'type' => '',
+      'attributes' => [],
+    ];
     // Parse order first.
     $syntax = static::highlightSyntax($string);
     $matches = [];
@@ -356,11 +377,7 @@ class Parser {
     $ruleParts = static::explode('@', $string);
     // Matches everything.
     if (empty($ruleParts)) {
-      return [
-        'entity' => '',
-        'attributes' => [],
-        'order' => 0,
-      ];
+      return $query;
     }
     // Validate syntax.
     if (count($ruleParts) > 2) {
@@ -368,7 +385,9 @@ class Parser {
     }
     // Normal section.
     if (count($ruleParts) == 2) {
-      $query['entity'] = reset($ruleParts);
+      list($entity, $type) = array_values(static::parseEntityName(reset($ruleParts)));
+      $query['entity'] = $entity;
+      $query['type'] = $type;
       $query['attributes'] = static::queryAttributes(next($ruleParts));
       return $query;
     }
@@ -377,11 +396,12 @@ class Parser {
     $rule = reset($ruleParts);
     $boolOperators = static::explode('=,!,*,^,$', $rule);
     if (count($boolOperators) > 1) {
-      $query['entity'] = '';
       $query['attributes'] = static::queryAttributes($rule);
     }
     else {
-      $query['entity'] = $rule;
+      list($entity, $type) = array_values(static::parseEntityName($rule));
+      $query['entity'] = $entity;
+      $query['type'] = $type;
       $query['attributes'] = [];
     }
     return $query;

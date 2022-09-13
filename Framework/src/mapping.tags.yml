@@ -264,6 +264,7 @@ connectionsprite: ConnectionSprite
 containable: Containable
 containedsprite: ContainedSprite
 contentpackage: ContentPackage
+contentpackages: ContentPackages
 controller: Controller
 conversation: Conversation
 conversationaction: ConversationAction
@@ -1077,6 +1078,7 @@ submarineicon: SubmarineIcon
 submarinelocationicon: SubmarineLocationIcon
 submarinetypes: SubmarineTypes
 subtractcomponent: SubtractComponent
+subtree: SubTree
 subtreeheader: SubTreeHeader
 success: Success
 sufforin: Sufforin
@@ -1110,8 +1112,11 @@ talentbackground: TalentBackground
 talentbackgroundglow: TalentBackgroundGlow
 talentframe: TalentFrame
 talentframebackground: TalentFrameBackground
+talentoption: TalentOption
+talentoptions: TalentOptions
 talentpointnotification: TalentPointNotification
 talents: Talents
+talenttree: TalentTree
 talenttreeavailable: TalentTreeAvailable
 talenttreelocked: TalentTreeLocked
 talenttreepurchased: TalentTreePurchased

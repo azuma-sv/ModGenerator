@@ -9,6 +9,7 @@ namespace Barotraumix\Framework\Services;
 
 use Barotraumix\Framework\Entity\Property\NestedArray;
 use Barotraumix\Framework\Entity\Property\ID;
+use Barotraumix\Framework\Compiler\ContextRoot;
 use Barotraumix\Framework\Compiler\Context;
 use Symfony\Component\Yaml\Yaml;
 
@@ -28,15 +29,15 @@ class Database {
   use ID;
 
   /**
-   * @var array<Context> - Storage for contexts which are available for current
+   * @var array<ContextRoot> - Storage for contexts which are available for current
    *   DB.
    */
   protected array $storage = [];
 
   /**
-   * @var Context - Active context.
+   * @var ContextRoot - Active context.
    */
-  protected Context $context;
+  protected ContextRoot $context;
 
   /**
    * @var array - Primary mod file data.
@@ -118,11 +119,11 @@ class Database {
    *
    * Added context will be available during mod compilation.
    *
-   * @param Context $context - Context object.
+   * @param ContextRoot $context - Context object.
    *
    * @return void
    */
-  public function contextAdd(Context $context): void {
+  public function contextAdd(ContextRoot $context): void {
     if (!$context->hasID()) {
       API::error('Unable to add context without ID to database.');
     }
@@ -135,9 +136,9 @@ class Database {
    * @param string|NULL $name - Context name to get.
    *  If name is not added - active context will be used.
    *
-   * @return Context|array|NULL
+   * @return ContextRoot|array|NULL
    */
-  public function context(string $name = NULL): Context|array|NULL {
+  public function context(string $name = NULL): ContextRoot|array|NULL {
     $name = isset($name) ? $this->applications($name) : NULL;
     if (isset($name)) {
       return $this->storage[$name] ?? NULL;
@@ -164,7 +165,16 @@ class Database {
       $keys = [$keys];
     }
     $key = $isGlobal ? 'variables' : 'variablesLocal';
-    NestedArray::setValue($this->$key, $keys, $variable);
+    if (!is_array($variable)) {
+      // Non-array values can be just set.
+      NestedArray::setValue($this->$key, $keys, $variable);
+    }
+    else {
+      // Merge array of data.
+      $source = $this->$key;
+      $destination = NestedArray::mergeDeep($source, $variable);
+      $this->$key = $destination;
+    }
   }
 
   /**
@@ -243,7 +253,7 @@ class Database {
    * Active context - is a combination of all existing contexts.
    */
   protected function createActiveContext(): void {
-    $this->context = new Context(static::CONTEXT);
+    $this->context = new ContextRoot(static::CONTEXT);
     foreach (array_reverse($this->contextNames(), TRUE) as $contextName) {
       $context = $this->context($contextName);
       /** @var \Barotraumix\Framework\Entity\RootEntity $entity */

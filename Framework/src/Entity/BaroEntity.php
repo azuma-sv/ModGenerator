@@ -89,7 +89,8 @@ abstract class BaroEntity {
    */
   public function clone(BaroEntity $parent = NULL): BaroEntity {
     // Clone current entity with proper parent.
-    $cloned = $this->create($parent);
+    $cloned = $this->createClone($parent);
+    // Avoid notice for overwritten ID.
     $cloned->id = NULL;
     $cloned->setID($this->id());
     // In case if we have children - clone them too.
@@ -102,16 +103,6 @@ abstract class BaroEntity {
     $cloned->lock();
     // @todo: Clone entity value?
     return $cloned;
-  }
-
-  /**
-   * Static factory method to create new instances of current class.
-   *
-   * @param BaroEntity|NULL $parent - Parent entity (optional for root entities).
-   */
-  public function create(BaroEntity $parent = NULL): static {
-    unset($parent);
-    return new static($this->name(), $this->attributes(), $this->appID(), $this->file());
   }
 
   /**
@@ -226,5 +217,12 @@ abstract class BaroEntity {
    * @return string
    */
   abstract public function debug(): string;
+
+  /**
+   * Static factory method to create new instances of current class.
+   *
+   * @param BaroEntity|NULL $parent - Parent entity (optional for root entity).
+   */
+  abstract protected function createClone(BaroEntity $parent = NULL): static;
 
 }

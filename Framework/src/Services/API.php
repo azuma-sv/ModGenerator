@@ -43,21 +43,71 @@ class API {
    */
   public static function normalizeTagName(string $name): string {
     $core = Core::get();
-    $name = mb_strtolower($name);
+    $lowerName = mb_strtolower($name);
     // Look for appropriate name in mapping.
-    if ($core->mappingTags->has($name)) {
-      $name = $core->mappingTags->get($name);
+    if ($core->mappingTags->has($lowerName)) {
+      $name = $core->mappingTags->get($lowerName);
     }
     else {
       // Add record if it's not a translation.
       // @todo: Improve condition.
       if (!str_contains($name, '.')) {
-        $core->mappingTags->set($name, $name);
+        $core->mappingTags->set($lowerName, $name);
         $core->mappingTags->save();
       }
     }
     // Return normalized value.
     return strval($name);
+  }
+
+  /**
+   * Get array of wrappers to ignore by entity type.
+   *
+   * @param string $type - Asset type.
+   *
+   * @return array|string|NULL
+   */
+  public static function getIgnoredWrappers(string $type): array|string|NULL {
+    $wrapper = static::getMainWrapper($type);
+    // Return array of wrappers to ignore.
+    return !empty($wrapper) ? [$wrapper, 'Override'] : ['Override'];
+  }
+
+  /**
+   * Get entity wrapper for multiple elements.
+   *
+   * @param string $type - Entity type.
+   *
+   * @return string|NULL
+   */
+  public static function getMainWrapper(string $type): string|NULL {
+    $wrapper = NULL;
+    $core = Core::get();
+    $type = static::normalizeTagName($type);
+    // Check in mapping.
+    if ($core->mappingIgnoredWrappers->has($type)) {
+      $wrapper = $core->mappingIgnoredWrappers->get($type);
+    }
+    return $wrapper;
+  }
+
+  /**
+   * Returns entity type by RootEntity tag name.
+   *
+   * Might return NULL. Sometimes user needs to set entity type manually.
+   *
+   * @param string $name - XML tag name.
+   *
+   * @return string|NULL
+   */
+  public static function getTypeByName(string $name): string|NULL {
+    $type = NULL;
+    $core = Core::get();
+    $nameLower = mb_strtolower($name);
+    if ($core->mappingEntity->has($nameLower)) {
+      $type = $core->mappingEntity->get($nameLower);
+    }
+    return $type;
   }
 
   /**

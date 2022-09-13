@@ -37,11 +37,13 @@ class RootEntity extends BaroEntity {
   /**
    * @inheritDoc
    *
+   * @param string $type - Entity type.
    * @param string|int $id - Source application ID.
    * @param string $file - Path to the source file.
    */
-  public function __construct(string $name, array $attributes, string|int $id, string $file) {
+  public function __construct(string $name, array $attributes, string $type, string|int $id, string $file) {
     // Keep metadata.
+    $this->type = $type;
     $this->appID = $id;
     $this->file = $file;
     parent::__construct($name, $attributes);
@@ -80,23 +82,11 @@ class RootEntity extends BaroEntity {
   }
 
   /**
-   * Get object type.
-   *
-   * Will return tag name in the case if it's a sub-element.
-   *
-   * @param string|NULL $type - Set new type for entity.
+   * Get object type (Asset type).
    *
    * @return string
    */
-  public function type(string $type = NULL): string {
-    // Set value.
-    if (isset($type)) {
-      $this->type = $type;
-    }
-    // Prevent error.
-    if (!isset($this->type)) {
-      return $this->name();
-    }
+  public function type(): string {
     return $this->type;
   }
 
@@ -147,6 +137,8 @@ class RootEntity extends BaroEntity {
 
   /**
    * Scans current entity for available sprites.
+   *
+   * @todo: Think on how it may be refactored.
    *
    * @param string|NULL $subFolder - Indicates that file need to be replaced
    *  from original position to another sub-folder.
@@ -203,17 +195,19 @@ class RootEntity extends BaroEntity {
    * @inheritDoc.
    */
   public function debug(): string {
-    $id = $this->id();
+    $name = $this->name();
     $type = $this->type();
-    return "Root entity with ID: '$id' of type: '$type'";
+    return "Root entity '$name' of type: '$type'";
   }
 
   /**
    * @inheritDoc.
    */
-  public function create(BaroEntity $parent = NULL): static {
-    $cloned = new static($this->name(), $this->attributes(), $this->appID(), $this->file());
-    $cloned->type($this->type());
+  protected function createClone(BaroEntity $parent = NULL): static {
+    if (isset($parent)) {
+      API::error('Root entity cannot have parent.');
+    }
+    $cloned = new static($this->name(), $this->attributes(), $this->type(), $this->appID(), $this->file());
     $cloned->override($this->appID() == API::APP_ID || $this->override());
     return $cloned;
   }

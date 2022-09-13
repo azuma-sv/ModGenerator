@@ -7,6 +7,8 @@
 
 namespace Barotraumix\Framework\Entity;
 
+use Barotraumix\Framework\Services\API;
+
 /**
  * Class definition
  */
@@ -113,25 +115,27 @@ class Element extends BaroEntity {
    */
   public function remove(): void {
     parent::remove();
-    $this->parent()->unsetChildren($this->id());
+    $this->parent()->unsetChildren($this);
   }
 
   /**
    * @inheritDoc.
    */
   public function debug(): string {
-    $id = $this->id();
     $name = $this->name();
     $root = $this->root();
-    $rootID = $root->id();
+    $rootName = $root->name();
     $rootType = $root->type();
-    return "Sub-element: '$name' with ID: '$id' owned by a root entity: '$rootType' with ID: '$rootID'";
+    return "Sub-element: '$name' owned by a root entity: '$rootName' of type '$rootType'";
   }
 
   /**
    * @inheritDoc.
    */
-  public function create(BaroEntity $parent = NULL): static {
+  protected function createClone(BaroEntity $parent = NULL): static {
+    if (!isset($parent)) {
+      API::error('Element entity cannot be created without parent.');
+    }
     return new static($this->name(), $this->attributes(), $parent);
   }
 
