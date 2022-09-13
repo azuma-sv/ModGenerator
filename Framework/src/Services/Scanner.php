@@ -115,64 +115,6 @@ class Scanner {
   }
 
   /**
-   * Helps to build tags mapping.
-   *
-   * @todo: Refactor.
-   *
-   * @return void
-   */
-  public function tagsMapping(): void {
-//    $mappingEntities = Services::$mappingEntities->array();
-//    $items = [];
-//    foreach ($assets as $asset) {
-      // Skip broken assets.
-//      if (!$asset->hasAttribute('file')) {
-//        continue;
-//      }
-      // Parse items.
-//      $file = $asset->attribute('file');
-//      $parser = $this->createParser($file);
-//      $parser->doParse();
-//      $data = $parser->doParse();
-//      $this->services()->processTree($data);
-//      if (!$data->hasChildren()) {
-//        // Skip file.
-//        continue;
-//      }
-//      // Check if we have only single child.
-//      if ($data->type() == 'Item') {
-//        $children = [$data];
-//      }
-//      else {
-//        $children = $data->children();
-//      }
-//      // Throw error.
-//      if (!isset($children)) {
-//        Core::error('Unable to get children of the entity.');
-//        return $items;
-//      }
-//      // Check each child.
-//      foreach ($children as $child) {
-//        if ($child->type() == 'Item') {
-//
-//          $items[] = BaroEntity::createFrom($child, $this->services());
-//        }
-//        else {
-//          // Can be used to add new values to YAML.
-//          // $mappingEntities->set($child->getName(), 'Item');
-//          Core::error('This case needs attention. Name of the element is: ' . $child->getName());
-//        }
-//      }
-//    }
-    // This item should never be a part of this mapping.
-//    $mappingEntities->delete('Items');
-    // Save to YAML.
-//    $mappingEntities->save();
-    // Return parsed items.
-//    return $items;
-  }
-
-  /**
    * Method to create parser object for specific file.
    *
    * @param Element|NULL $entity - BaroEntity of the asset.

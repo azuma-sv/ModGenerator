@@ -202,9 +202,17 @@ class Compiler {
       }
       // Process images.
       foreach ($entity->sprites($replacements[$entity->appID()]) as $entityFile => $sprites) {
-        if (stripos($sprites['ORIGINAL'], '%ModDir%') !== FALSE && !in_array($entityFile, $entityFiles)) {
-          // @todo: Ability to cut images into smaller pieces.
-          $entityFiles[$entityFile] = $path . '/' . $sprites['ACTIVE'];
+        if (!$settingsPrimary['corepackage']) {
+          if (stripos($sprites['ORIGINAL'], '%ModDir%') !== FALSE && !in_array($entityFile, $entityFiles)) {
+            // @todo: Ability to cut images into smaller pieces.
+            $entityFiles[$entityFile] = $path . '/' . $sprites['ACTIVE'];
+          }
+        }
+        else {
+          if (!in_array($entityFile, $entityFiles)) {
+            // @todo: Ability to cut images into smaller pieces.
+            $entityFiles[$entityFile] = $path . '/' . $sprites['ACTIVE'];
+          }
         }
       }
       // Prepare entity.
@@ -213,11 +221,6 @@ class Compiler {
       // @todo: Do the job with entity files (images, sounds etc.).
     }
     // Prepare content package.
-    $attributes = array_filter(
-      $settingsPrimary,
-      fn ($key) => in_array($key, explode(',', 'name,modversion,gameversion,corepackage,altnames')),
-      ARRAY_FILTER_USE_KEY
-    );
     $primaryModFile = 'filelist';
     $contentPackage = $this->contentPackage();
     foreach ($build as $file => $item) {

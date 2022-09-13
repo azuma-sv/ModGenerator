@@ -32,7 +32,7 @@ class API {
   /**
    * @const array - Array of attribute names which might contain files.
    */
-  const ATTRIBUTE_FILES = ['file', 'texture', 'vineatlas', 'decayatlas'];
+  const ATTRIBUTE_FILES = ['file', 'texture', 'vineatlas', 'decayatlas', 'path', 'branchatlas', 'namefile'];
 
   /**
    * Method to normalize tag name.
