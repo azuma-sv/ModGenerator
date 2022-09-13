@@ -38,6 +38,13 @@ class Compiler {
   protected array $modData;
 
   /**
+   * @var RootEntity - Content package object for this mod.
+   *
+   * @todo: Ability to handle multiple content packages.
+   */
+  protected RootEntity $contentPackage;
+
+  /**
    * Class constructor.
    *
    * @param string $mod - Mod to compile.
@@ -59,6 +66,7 @@ class Compiler {
     $this->modData[] = $modData;
     // Execute main module file.
     $db->variableAddMultiple($modData['variables'], TRUE);
+    $this->contentPackage();
     $this->execute($modData['execute'], $db->context());
     // Run includes.
     foreach ($this->includes() as $include) {
@@ -133,6 +141,28 @@ class Compiler {
   }
 
   /**
+   * Creates or returns content package of the mod.
+   *
+   * @todo: Ability to handle multiple content packages.
+   *
+   * @return RootEntity
+   */
+  public function contentPackage(): RootEntity {
+    if (isset($this->contentPackage)) {
+      return $this->contentPackage;
+    }
+    $db = $this->database();
+    $attributes = array_filter(
+      $this->processDefaultSettings($db->modData(), TRUE),
+      fn ($key) => in_array($key, explode(',', 'name,modversion,gameversion,corepackage,altnames')),
+      ARRAY_FILTER_USE_KEY
+    );
+    $this->contentPackage = new RootEntity('ContentPackage', $attributes, 'ContentPackage', $this->id(), 'filelist');
+    $db->context()->add($this->contentPackage);
+    return $this->contentPackage;
+  }
+
+  /**
    * Method to build mod structure from database.
    *
    * @todo: This shit needs refactoring, some day...
@@ -189,7 +219,7 @@ class Compiler {
       ARRAY_FILTER_USE_KEY
     );
     $primaryModFile = 'filelist';
-    $contentPackage = new RootEntity('ContentPackage', $attributes, 'ContentPackage', $this->id(), $primaryModFile);
+    $contentPackage = $this->contentPackage();
     foreach ($build as $file => $item) {
       $asset = new Element($types[$file], ['file' => "%ModDir%/$file.xml"], $contentPackage);
       $contentPackage->addChild($asset);

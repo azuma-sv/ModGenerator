@@ -67,9 +67,14 @@ class Functions {
         static::fnRemove($compiler, $string, $arguments, $value, $context);
         break;
 
-      case 'set-file':
+      case 'file-set':
         // Set file to export.
-        static::fnSetFile($compiler, $string, $arguments, $value, $context);
+        static::fnFileSet($compiler, $string, $arguments, $value, $context);
+        break;
+
+      case 'asset-add':
+        // Set file to export.
+        static::fnAssetAdd($compiler, $string, $arguments, $value, $context);
         break;
     }
   }
@@ -347,7 +352,7 @@ class Functions {
    *
    * @return void
    */
-  protected static function fnSetFile(Compiler $compiler, string $command, array $arguments, array|string $value, Context $context = NULL): void {
+  protected static function fnFileSet(Compiler $compiler, string $command, array $arguments, array|string $value, Context $context = NULL): void {
     unset($compiler, $command, $arguments);
     // Process entities.
     if (!$context->isEmpty() && $context->isBaroEntity()) {
@@ -355,6 +360,36 @@ class Functions {
       foreach ($context as $entity) {
         $entity->root()->file($value);
       }
+    }
+  }
+
+  /**
+   * Method to add asset to the content package.
+   *
+   * @example: $asset-add|EnemySubmarine: Content/Map/EnemySubmarines/DugongPirate.sub
+   * @example: $asset-add|EnemySubmarine: %ModDir/My/Custom/Submarine.sub
+   *
+   * @todo Handle multiple content packages.
+   *
+   * @param Compiler $compiler - Compiler service.
+   * @param string $command - Command to execute.
+   * @param array $arguments - Arguments array.
+   * @param array|string $value - Function value.
+   * @param Context|NULL $context - Context (or nothing).
+   *
+   * @return void
+   */
+  protected static function fnAssetAdd(Compiler $compiler, string $command, array $arguments, array|string $value, Context $context = NULL): void {
+    // Get asset type.
+    $assetType = API::normalizeTagName(reset($arguments));
+    // Array in any case.
+    if (!is_array($value)) {
+      $value = [$value];
+    }
+    $contentPackage = $compiler->contentPackage();
+    foreach ($value as $file) {
+      $asset = new Element($assetType, ['file' => $file], $contentPackage);
+      $contentPackage->addChild($asset);
     }
   }
 

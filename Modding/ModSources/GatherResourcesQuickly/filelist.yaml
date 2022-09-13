@@ -15,4 +15,4 @@ execute:
     /Holdable:
       pickingtime: '%PICKING_TIME'
     $remove: tags=ore/LevelResource/RequiredItem@items=cuttingequipment
-    $set-file: GatherResourcesQuickly
+    $file-set: GatherResourcesQuickly
