@@ -159,13 +159,8 @@ class RootEntity extends BaroEntity {
             $sprites[$path]['ORIGINAL'] = $value;
           }
           // In the case if we need to replace file in another sub-folder.
-          if (isset($subFolder)) {
-            if (stripos($value, '%ModDir%') !== FALSE) {
-              $value = str_ireplace('%ModDir%', $subFolder, $value);
-            }
-            else {
-              $value = API::APP_NAME . "/$value";
-            }
+          if (isset($subFolder) && stripos($value, '%ModDir%') !== FALSE) {
+            $value = str_ireplace('%ModDir%', $subFolder, $value);
             $entity->setAttribute($attribute, $value);
           }
           // Always keep active value.

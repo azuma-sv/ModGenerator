@@ -202,17 +202,9 @@ class Compiler {
       }
       // Process images.
       foreach ($entity->sprites($replacements[$entity->appID()]) as $entityFile => $sprites) {
-        if (!$settingsPrimary['corepackage']) {
-          if (stripos($sprites['ORIGINAL'], '%ModDir%') !== FALSE && !in_array($entityFile, $entityFiles)) {
-            // @todo: Ability to cut images into smaller pieces.
-            $entityFiles[$entityFile] = $path . '/' . $sprites['ACTIVE'];
-          }
-        }
-        else {
-          if (!in_array($entityFile, $entityFiles)) {
-            // @todo: Ability to cut images into smaller pieces.
-            $entityFiles[$entityFile] = $path . '/' . $sprites['ACTIVE'];
-          }
+        if (stripos($sprites['ORIGINAL'], '%ModDir%') !== FALSE && !in_array($entityFile, $entityFiles)) {
+          // @todo: Ability to cut images into smaller pieces.
+          $entityFiles[$entityFile] = $path . '/' . $sprites['ACTIVE'];
         }
       }
       // Prepare entity.
