@@ -340,7 +340,7 @@ class Parser {
   protected static function parseEntityName(string $string): array {
     $data = [];
     $matches = [];
-    preg_match('/\(([a-zA-Z\d_.-])\)$/', $string, $matches);
+    preg_match('/\(([a-zA-Z\d_.-]*)\)$/', $string, $matches);
     $data['type'] = !empty($matches[1]) ? $matches[1] : '';
     $position = mb_strpos($string, '(');
     $data['entity'] = $position !== FALSE ? mb_substr($string, 0, $position) : $string;
