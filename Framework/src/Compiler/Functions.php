@@ -329,15 +329,24 @@ class Functions {
    * @return void
    */
   protected static function fnRemove(Compiler $compiler, string $command, array $arguments, array|string $value, Context $context = NULL): void {
-    // Validate filter rule.
-    if (!Parser::isQuery($value)) {
-      API::error('Wrong value format for $remove command. Invalid query: ' . $value);
+    if (!is_array($value)) {
+      $value = [$value];
     }
     unset($command, $arguments);
-    $filtered = $compiler->filter($value, $context);
-    // Remove them all at once.
-    if (!$filtered->isEmpty()) {
-      $filtered->remove($filtered->array());
+    // Process each query.
+    foreach ($value as $query) {
+      // Validate filter rule.
+      if (!Parser::isQuery($query)) {
+        API::error('Wrong value format for $remove command. Invalid query: ' . $query);
+      }
+      $filtered = $compiler->filter($query, $context);
+      // Remove them all at once.
+      if (!$filtered->isEmpty() && $filtered->isBaroEntity()) {
+        $filtered->remove($filtered->array());
+      }
+      else {
+        API::notice('Empty results for query: ' . $query);
+      }
     }
   }
 
