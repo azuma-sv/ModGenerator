@@ -144,6 +144,13 @@ class Functions {
       API::error('Unable to import data, because variable name is not set in a command: ' . $command);
     }
     $variableName = Parser::applyVariables($variableName, $compiler->database());
+    // Validate variable name.
+    // @todo: Single validation rule.
+    preg_match('/^[\dA-Z_>]*/', trim($variableName), $matches);
+    $token = reset($matches);
+    if (empty($token) || $token != $variableName) {
+      API::error('Wrong variable name syntax: ' . $variableName . ' - in a command: ' . $command);
+    }
     // Get context name.
     $contextName = next($arguments);
     $contextName = empty($contextName) ? NULL : $contextName;
@@ -153,21 +160,23 @@ class Functions {
       API::error('Unable to query anything by a given rule: ' . $command . ': ' . $value);
     }
     // Set imported value.
+    $keys = explode('>', $token);
     if ($results->count() == 1) {
       $result = $results->current();
     }
     else {
       $result = $results->array();
-    }
-    // Validate variable name.
-    // @todo: Single validation rule.
-    preg_match('/^[\dA-Z_>]*/', trim($variableName), $matches);
-    $token = reset($matches);
-    if (empty($token) || $token != $variableName) {
-      API::error('Wrong variable name syntax: ' . $variableName . ' - in a command: ' . $command);
+      // Prepare variable structure.
+      $initial = [];
+      $value = &$initial;
+      foreach ($keys as $key) {
+        $value[$key] = [];
+        $value = &$value[$key];
+      }
+      $value = $result;
+      $result = $initial;
     }
     // Import variable.
-    $keys = explode('>', $token);
     $compiler->database()->variableAdd($keys, $result);
   }
 

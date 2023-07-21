@@ -494,7 +494,8 @@ class Context implements Iterator, ArrayAccess, Countable {
         case '>':
           // Prepare results.
           $attribute = $condition['child']['entity'];
-          foreach ($collection[$depth] as $scope) {
+          $filtered = isset($depthToReturn) ? $collection[$depthToReturn] : $collection[$depth];
+          foreach ($filtered as $scope) {
             /** @var BaroEntity $entity */
             foreach ($scope as $entity) {
               // Return attribute if possible.
