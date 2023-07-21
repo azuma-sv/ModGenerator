@@ -8,6 +8,11 @@ services:
   appserver:
     type: php:8.1
     overrides:
+      # Integration.
+      volumes:
+        - 'C:\Program Files (x86)\Steam\steamapps\common\Barotrauma:/app/Modding/Barotrauma'
+        - 'C:\Users\Win10_Game_OS\AppData\Local\Daedalic Entertainment GmbH\Barotrauma\WorkshopMods\Installed:/app/Modding/Workshop'
+        - 'C:\Program Files (x86)\Steam\steamapps\common\Barotrauma\LocalMods:/app/Modding/LocalMods'
       # Image with Lando PHP 8.1 and SteamCMD.
       image: azumasv/barotraumix:lando-php-8.1
       environment:

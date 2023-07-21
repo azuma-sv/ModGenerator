@@ -150,7 +150,7 @@ class Functions {
     // Prepare variables.
     $results = $compiler->query($value, $contextName);
     if ($results->isEmpty()) {
-      API::error('Unable to query anything by a given rule: ' . $command);
+      API::error('Unable to query anything by a given rule: ' . $command . ': ' . $value);
     }
     // Set imported value.
     if ($results->count() == 1) {
@@ -274,7 +274,7 @@ class Functions {
     // Get order.
     $order = intval(next($arguments));
     // Prepare objects for cloning.
-    $results = $compiler->query($value, $contextName);
+    $results = $compiler->query($query, $contextName);
     if ($results->isEmpty()) {
       API::error('Unable to query anything by a given rule: ' . $command);
     }
@@ -292,6 +292,8 @@ class Functions {
       if ($results->isRoot()) {
         // Create entity.
         $clone = $entityToClone->clone();
+        // @todo: Refactor ID handling mechanism.
+        $clone->setID(spl_object_id($clone));
         $clone->breakLock();
         $context->add($clone);
         // Import changes for child elements and attributes.

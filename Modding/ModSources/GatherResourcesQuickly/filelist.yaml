@@ -2,17 +2,30 @@ name: '[DS] Gather Resources Quickly'
 modversion: 1.0.2
 altnames: Gather Resources Quickly
 variables:
-  RARE: 'titanium,lead,thorium,uranium,sodium,magnesium,potassium,lithium,antibiotics'
+  UNCOMMON: 'titanium,lead,thorium,uranium,sodium,magnesium,potassium,lithium,antibiotics,paralyxis'
+  RARE: 'incendium,fulgurium,physicorium,dementonite'
   SONAR:
     COMMON: 9
-    RARE: 18
+    UNCOMMON: 18
+    RARE: 27
   PICKING_TIME: 0
 execute:
+  $import|EXCEPTIONS|Barotrauma: Item@tags=ore,plant>identifier
+  # $debug: Item@tags=ore,plant>identifier
+  # $debug|Light: Item@tags=ore,plant<LightComponent>identifier
+  # $import|EXCEPTIONS: Item@tags=ore,plant>identifier
+  # <LightComponent@ison=true
+  # $debug|Debug: '%EXCEPTIONS'
   Item@tags=ore,plant:
     sonarsize: '%SONAR>COMMON'
-    <Deconstruct/Item@identifier=%RARE:
+    <Deconstruct/Item@identifier=%UNCOMMON:
+      sonarsize: '%SONAR>UNCOMMON'
+    identifier=%RARE:
       sonarsize: '%SONAR>RARE'
     /Holdable:
       pickingtime: '%PICKING_TIME'
+    $debug: Item>identifier
+    <LightComponent@ison=true:
+      $debug: Item>identifier
     $remove: tags=ore/LevelResource/RequiredItem@items=cuttingequipment
     $file-set: GatherResourcesQuickly
