@@ -52,7 +52,7 @@ class Functions {
         break;
 
       case 'import':
-        static::fnImport($compiler, $string, $arguments, $value);
+        static::fnImport($compiler, $string, $arguments, $value, $context);
         break;
 
       case 'create':
@@ -130,10 +130,11 @@ class Functions {
    * @param string $command - Command to execute.
    * @param array $arguments - Arguments array.
    * @param array|string $value - Function value.
+   * @param Context|NULL $context - Context (or nothing).
    *
    * @return void
    */
-  protected static function fnImport(Compiler $compiler, string $command, array $arguments, array|string $value): void {
+  protected static function fnImport(Compiler $compiler, string $command, array $arguments, array|string $value, Context $context = NULL): void {
     // Validate value.
     if (!Parser::isQuery($value)) {
       API::error('Wrong value format for command: ' . $command);
@@ -155,7 +156,12 @@ class Functions {
     $contextName = next($arguments);
     $contextName = empty($contextName) ? NULL : $contextName;
     // Prepare variables.
-    $results = $compiler->query($value, $contextName);
+    if (isset($contextName) || !isset($context)) {
+      $results = $compiler->query($value, $contextName);
+    }
+    else {
+      $results = $context->query(Parser::query($value));
+    }
     if ($results->isEmpty()) {
       API::error('Unable to query anything by a given rule: ' . $command . ': ' . $value);
     }
