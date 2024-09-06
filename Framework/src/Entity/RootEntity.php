@@ -203,7 +203,9 @@ class RootEntity extends BaroEntity {
       API::error('Root entity cannot have parent.');
     }
     $cloned = new static($this->name(), $this->attributes(), $this->type(), $this->appID(), $this->file());
-    $cloned->override($this->appID() == API::APP_ID || $this->override());
+    // @todo: Find out the way on how to determine if we override or steal something from other mod (application).
+    $override = TRUE;
+    $cloned->override($this->appID() == API::APP_ID || $override);
     return $cloned;
   }
 

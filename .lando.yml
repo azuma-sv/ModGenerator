@@ -10,9 +10,20 @@ services:
     overrides:
       # Image with Lando PHP 8.1 and SteamCMD.
       image: azumasv/barotraumix:lando-php-8.1
+      volumes:
+        - 'C:\:/mnt/host/c'
+        # It's possible to mount proper folders, but I prefer to use symlinks.
+        # - 'C:\Program Files (x86)\Steam\steamapps\common\Barotrauma:/app/Modding/Barotrauma'
+        # - 'C:\Users\Azuma\AppData\Local\Daedalic Entertainment GmbH\Barotrauma\WorkshopMods\Installed:/app/Modding/Workshop'
+        # - 'C:\Program Files (x86)\Steam\steamapps\common\Barotrauma\LocalMods:/app/Modding/LocalMods'
       environment:
         BMF_PATH_FRAMEWORK: /app/Framework
         BMF_PATH_GAME: /app/Modding/Barotrauma
         BMF_PATH_WORKSHOP: /app/Modding/Workshop
         BMF_PATH_INPUT: /app/Modding/ModSources
         BMF_PATH_OUTPUT: /app/Modding/LocalMods
+        # Create folder links:
+        # Win + R: cmd
+        # mklink /J C:\Users\Azuma\Projects\BarotraumaModGenerator\Modding\Barotrauma "C:\Program Files (x86)\Steam\steamapps\common\Barotrauma"
+        # mklink /J C:\Users\Azuma\Projects\BarotraumaModGenerator\Modding\Workshop "C:\Users\Azuma\AppData\Local\Daedalic Entertainment GmbH\Barotrauma\WorkshopMods\Installed"
+        # mklink /J C:\Users\Azuma\Projects\BarotraumaModGenerator\Modding\LocalMods "C:\Program Files (x86)\Steam\steamapps\common\Barotrauma\LocalMods"

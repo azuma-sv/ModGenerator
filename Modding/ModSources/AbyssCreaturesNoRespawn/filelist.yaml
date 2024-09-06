@@ -1,0 +1,44 @@
+name: '[DS] Abyss Creatures - No Respawn'
+modversion: 1.0.0
+altnames: Abyss Creatures - No Respawn
+# steamworkshopid: 2850591365
+workshop:
+  - 2085783214
+# variables:
+execute:
+
+
+
+  ### Vanilla RandomEvents
+  # For campaign:
+  EventSet@campaign=true/EventSet@identifier=abyss+resettime!:
+    resettime: 86400
+    $file-set: randomevents_campaign
+  # For non-campaign:
+  EventSet@campaign!true/EventSet@identifier=abyss+resettime!:
+    resettime: 86400
+    $file-set: randomevents_lineardifficulty
+
+
+
+  ### ImprovedHusks RandomEvents
+  # For campaign:
+  EventSet@campaign=true+identifier^Husk/EventSet@identifier=abyss+resettime!:
+    resettime: 86400
+    $file-set: huskeventscampaign
+  # For non-campaign:
+  EventSet@campaign=false+identifier^Husk/EventSet@identifier=abyss+resettime!:
+    resettime: 86400
+    $file-set: huskevents
+
+
+
+  ### Barotraumatic RandomEvents
+  # For campaign:
+  EventSet@campaign=true+identifier^BT/EventSet@identifier^abyss+resettime!:
+    resettime: 86400
+    $file-set: randomcampaignevents
+  # For non-campaign:
+  EventSet@campaign=false+identifier^BT/EventSet@identifier^abyss+resettime!:
+    resettime: 86400
+    $file-set: randommissionevents

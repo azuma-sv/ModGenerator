@@ -1,0 +1,14 @@
+name: '[DS] Abyss Creatures - No Respawn for Improved Husks'
+modversion: 1.0.0
+altnames: Abyss Creatures - No Respawn for Improved Husks
+# steamworkshopid: 2850591365
+workshop:
+  - 2085783214
+# variables:
+execute:
+  EventSet@campaign=true+identifier^Husk/EventSet@identifier=abyss+resettime!:
+    resettime: 86400
+    $file-set: huskeventscampaign
+  EventSet@campaign=false+identifier^Husk/EventSet@identifier=abyss+resettime!:
+    resettime: 86400
+    $file-set: huskevents

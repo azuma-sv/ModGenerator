@@ -1,24 +1,13 @@
 name: '[DS] Gather Resources Quickly'
-modversion: 1.0.2
+modversion: 1.0.4
 altnames: Gather Resources Quickly
+steamworkshopid: 2850591365
 variables:
-  UNCOMMON: 'titanium,lead,thorium,uranium,sodium,magnesium,potassium,lithium,antibiotics,paralyxis'
-  RARE: 'incendium,fulgurium,physicorium,dementonite'
-  SONAR:
-    COMMON: 9
-    UNCOMMON: 18
-    RARE: 27
+  SONAR: 18000
   PICKING_TIME: 0
 execute:
   $import|WITH_LIGHT: Item@tags=ore,plant<LightComponent>identifier
   Item@tags=ore,plant:
-    sonarsize: '%SONAR>COMMON'
-    <Deconstruct/Item@identifier=%UNCOMMON:
-      sonarsize: '%SONAR>UNCOMMON'
-    identifier=%RARE:
-      sonarsize: '%SONAR>RARE'
-    /Holdable:
-      pickingtime: '%PICKING_TIME'
     Item@identifier![%WITH_LIGHT]:
       ~LightComponent:
         lightcolor: 255,255,255,150
@@ -33,5 +22,11 @@ execute:
         ~LightTexture:
           texture: Content/Lights/pointlight_rays.png
           origin: 0.5,0.5
+    /Holdable:
+      pickingtime: '%PICKING_TIME'
     $remove: tags=ore/LevelResource/RequiredItem@items=cuttingequipment
-    $file-set: GatherResourcesQuickly
+    $file-set: OreAndPlants
+  Item@tags=navterminal,sonarmonitor:
+    /Sonar:
+      range: '%SONAR'
+      $file-set: Sonar

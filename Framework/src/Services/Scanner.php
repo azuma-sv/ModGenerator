@@ -134,8 +134,7 @@ class Scanner {
       return $this->parsers[$file];
     }
     // Remove %ModDir%/ in mod files.
-    $string = '%ModDir%/';
-    $file = str_ireplace($string, '', $file);
+    $file = preg_replace('/(.*)(%ModDir.*?%\/)(.*)/i', '$1$3', $file);
     // Create parser and store it in cache.
     $type = isset($entity) ? $entity->name() : 'ContentPackage';
     $wrapper = API::getMainWrapper($type);

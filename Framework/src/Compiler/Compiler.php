@@ -129,13 +129,21 @@ class Compiler {
       }
       // If we have bypassed all conditions above - it must be just a tag value.
       // @todo: Implode arrays to comma separated values.
-      if (!is_scalar($data)) {
-        API::error('Mod command syntax error. Unable to set value for attribute: ' . $command);
-      }
-      foreach ($context as $entity) {
-        if ($entity instanceof BaroEntity) {
-          $entity->setAttribute($command, $data);
+      if (is_scalar($data) || $data === NULL) {
+        foreach ($context as $entity) {
+          if ($entity instanceof BaroEntity) {
+            if (is_scalar($data)) {
+              $entity->setAttribute($command, $data);
+            }
+            // Ability to unset attribute in case if YAML file has no assigned value.
+            else {
+              $entity->unsetAttributes([$command]);
+            }
+          }
         }
+      }
+      else {
+        API::error('Mod command syntax error. Unable to set value for attribute: ' . $command);
       }
     }
   }
@@ -248,7 +256,8 @@ class Compiler {
       $dom = API::dom();
       $dom->loadXML($xml->asXML());
       // Create a file.
-      file_put_contents("$path/$file.xml", $dom->saveXML());
+      // Add extra space to the end of the tag, before it's closed.
+      file_put_contents("$path/$file.xml", str_replace("/>", " />", $dom->saveXML()));
     }
     // Copy additional files too.
     foreach ($entityFiles as $from => $to) {

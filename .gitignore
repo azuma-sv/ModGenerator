@@ -1,9 +1,10 @@
 # @todo: Ignore ModSources folder.
 Modding/Barotrauma/*
-Modding/LocalMods/*
+Modding/LocalMods
 Modding/Workshop/*
 
 # Storage for environment sensitive information.
 .idea/*
+.vscode
 .lando.local.yml
 Framework/src/temp.yml
